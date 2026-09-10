@@ -25,3 +25,10 @@ void AGOAPGoal::Tick(float DeltaTime)
 
 }
 
+/**
+ * REFERENCES:
+ * Studying free Godot downloadable project that demonstrates GOAP
+ * https://github.com/viniciusgerevini/godot-goap
+ * 
+ * 
+ */
