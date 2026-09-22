@@ -4,7 +4,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
+#include "InputAction.h"
+#include "InputMappingContext.h"
+#include "EnhancedInputSubsystems.h"
+#include "EnhancedInputComponent.h"
+
 #include "GameFramework/Character.h"
+
 #include "ConeCharacter.generated.h"
 
 UCLASS()
@@ -20,11 +27,40 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+	UPROPERTY(EditDefaultsOnly)
+	float LookSensitivity;
+
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UInputAction> MoveAction;
+
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UInputAction> LookAction;
+
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UInputAction> JumpAction;
+
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UInputMappingContext> InputMappingContext;
+
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+private:
+	void Move(const FInputActionValue& Value);
+
+	void Look(const FInputActionValue& Value);
+
+	void StartJumping(const FInputActionValue& Value);
+
+	void EndJumping(const FInputActionValue& Value);
 };
+
+
+
+
+
+
