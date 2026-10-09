@@ -81,5 +81,8 @@ Plugins/**/Intermediate/*
 DerivedDataCache/*
 
 
-# 
+
+
+# Rider IDE
+.idea
 */.idea
