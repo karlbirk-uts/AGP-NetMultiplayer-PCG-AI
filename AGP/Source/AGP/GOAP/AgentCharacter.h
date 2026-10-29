@@ -44,7 +44,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<UPlanner> Planner;
 
-	// Agent-copy of current best plan. This can change more than once per tick, currently.
+	// Agent-copy of current best plan. This can change once per tick, currently.
 	UPROPERTY()
 	TArray<TObjectPtr<UAction>> CurrentPlan;
 

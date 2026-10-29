@@ -2,6 +2,7 @@
 
 
 #include "AgentCharacter.h"
+#include "../Pathfinding/NavigationNode.h"
 
 AAgentCharacter::AAgentCharacter()
 {

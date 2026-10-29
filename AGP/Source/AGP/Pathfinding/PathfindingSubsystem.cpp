@@ -280,6 +280,11 @@ TArray<FVector> UPathfindingSubsystem::GetPath(ANavigationNode* StartNode, ANavi
 		{
 			if (!ConnectedNode) continue;
 
+
+			// Skip if either the target node or current node is blocked
+			if (ConnectedNode->IsBlocked() || CurrentNode->IsBlocked()) continue;
+
+			
 			const float TentativeConnectedNodeGScore = NodeMap[CurrentNode]->GScore + 
 				FVector::DistSquared(CurrentNode->GetActorLocation(), ConnectedNode->GetActorLocation());
 			

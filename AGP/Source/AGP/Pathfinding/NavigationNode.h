@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Sight.h"
 #include "NavigationNode.generated.h"
 
 UCLASS()
@@ -26,11 +28,31 @@ public:
 	TArray<ANavigationNode*> GetConnectedNodes();
 	void AddConnectedNode(ANavigationNode* Node);
 	
+	
+	UFUNCTION(BlueprintPure, Category = "A4 Navigation")
+	bool IsBlocked() const { return bIsBlocked; }
+	
 protected:
 	UPROPERTY(EditAnywhere)
 	TArray<ANavigationNode*> ConnectedNodes;
 	
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent* LocationComponent;
+	
+	UPROPERTY(VisibleAnywhere)
+	UAIPerceptionStimuliSourceComponent* PerceptionSource;
+	
+	
+	
+	
+	// Testing with subsystem building all nodes pathways like before
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "A4 Navigation")
+	bool bIsBlocked = false;
+
+	UFUNCTION(BlueprintCallable, Category = "A4 Navigation")
+	void SetBlocked(bool bBlocked) { bIsBlocked = bBlocked; }
+
+
+
 
 };
