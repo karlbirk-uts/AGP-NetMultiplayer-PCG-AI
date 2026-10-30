@@ -50,29 +50,31 @@ void ANavigationNode::BeginPlay()
 		DrawDebugLine(GetWorld(), GetActorLocation(), Node->GetActorLocation(), LineColor, true, -1, 0, LineThickness);
 	}
 
-	PerceptionSource->
-		RegisterForSense(
-			UAISense_Sight::StaticClass());
-
-	PerceptionSource->
-		RegisterForSense(
-			UAISense_Damage::StaticClass());
-
-	PerceptionSource->
-		RegisterForSense(
-			UAISense_Hearing::StaticClass());
-
-	PerceptionSource->
-		RegisterForSense(
-			UAISense_Touch::StaticClass());
-
-	PerceptionSource->
-		RegisterForSense(
-			UAISense_Team::StaticClass());
-
-	PerceptionSource->
-		RegisterForSense(
-			UAISense_Prediction::StaticClass());
+	
+	// PerceptionSource->
+	// 	RegisterForSense(
+	// 		UAISense_Sight::StaticClass());
+	//
+	// PerceptionSource->
+	// 	RegisterForSense(
+	// 		UAISense_Damage::StaticClass());
+	//
+	// PerceptionSource->
+	// 	RegisterForSense(
+	// 		UAISense_Hearing::StaticClass());
+	//
+	// PerceptionSource->
+	// 	RegisterForSense(
+	// 		UAISense_Touch::StaticClass());
+	//
+	// PerceptionSource->
+	// 	RegisterForSense(
+	// 		UAISense_Team::StaticClass());
+	//
+	// PerceptionSource->
+	// 	RegisterForSense(
+	// 		UAISense_Prediction::StaticClass());
+	
 }
 
 // Called every frame
