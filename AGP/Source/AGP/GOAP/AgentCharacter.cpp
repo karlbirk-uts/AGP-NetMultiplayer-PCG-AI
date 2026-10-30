@@ -33,7 +33,7 @@ void AAgentCharacter::BeginPlay()
 	WanderAction->ActionOutcomes.StatesMap.Add(TEXT("bHasWandered"), true);
 	Actions.Add(WanderAction);
 
-	
+
 	// Adding examples
 	AgentWorldState.StatesMap.Add(TEXT("bHasWalkedToGoldSphere"), false);
 
@@ -47,8 +47,8 @@ void AAgentCharacter::BeginPlay()
 	GoTowardsGoldSphereAction->ActionCost = 0.1;
 	GoTowardsGoldSphereAction->ActionOutcomes.StatesMap.Add(TEXT("bHasWalkedToGoldSphere"), true);
 	Actions.Add(GoTowardsGoldSphereAction);
-	
-	
+
+
 	// VIDEO Example
 	// AgentWorldState.StatesMap.Add(TEXT("bHasMovedToGold"), false);
 	// AgentWorldState.StatesMap.Add(TEXT("bHasMovedToPink"), false);
@@ -194,11 +194,18 @@ void AAgentCharacter::TickDoCurrentPlan()
 	// Else, if CurrentQueuedAction looks valid, continue with it
 	if (CurrentQueuedAction)
 	{
-		// Inside DoImplementation, when the action finishes its task, 
-		// it must set CurrentQueuedAction->bIsCompleted = true;
-
+		// When the action finishes its task
 		if (CurrentQueuedAction->bIsCompleted)
 		{
+			// it must set CurrentQueuedAction->bIsCompleted = true;
+			for (const TPair<FString, bool>& ActionOutcome : CurrentQueuedAction->ActionOutcomes.StatesMap)
+			{
+				AgentWorldState.StatesMap.Emplace(
+					ActionOutcome.Key,
+					ActionOutcome.Value);
+			}
+
+
 			// Reset bIsCompleted to false
 			CurrentQueuedAction->bIsCompleted = false;
 			CurrentQueuedAction = nullptr;
@@ -224,10 +231,10 @@ void AAgentCharacter::BuildQueueFromPlan()
 
 void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 {
-	if (Action->ActionOutcomes.HasAll(AgentWorldState))
-	{
-		Action->bIsCompleted = true;
-	}
+	// if (Action->ActionOutcomes.HasAll(AgentWorldState))
+	// {
+	// 	Action->bIsCompleted = true;
+	// }
 
 
 	// Perform implementations of actions from here.
