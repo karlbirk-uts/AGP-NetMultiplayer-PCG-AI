@@ -67,7 +67,7 @@ bool UPlanner::GetPlan(
 			}
 		}
 
-		UE_LOG(LogTemp, Warning, TEXT("GetPlan() WHILELOOP LowestFCost: %f"), LowestFCost);
+		// UE_LOG(LogTemp, Warning, TEXT("GetPlan() WHILELOOP LowestFCost: %f"), LowestFCost);
 
 
 		// Current node's most up to date FWorldState
@@ -79,7 +79,7 @@ bool UPlanner::GetPlan(
 
 		for (const TPair<FString, bool>& StateKVP : CurrentNodeWorldState.StatesMap)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GetPlan() WHILELOOP CurrentNodeWorldState.StatesMap Key: %s"), *StateKVP.Key);
+			// UE_LOG(LogTemp, Warning, TEXT("GetPlan() WHILELOOP CurrentNodeWorldState.StatesMap Key: %s"), *StateKVP.Key);
 			// First loop should match NPCState.
 		}
 
@@ -91,7 +91,7 @@ bool UPlanner::GetPlan(
 		{
 			bIsGoalReachable = true;
 
-			UE_LOG(LogTemp, Warning, TEXT("GetPlan() WHILELOOP break bIsGoalReachable == true"));
+			// UE_LOG(LogTemp, Warning, TEXT("GetPlan() WHILELOOP break bIsGoalReachable == true"));
 
 			break;
 		}
@@ -203,6 +203,7 @@ bool UPlanner::GetPlan(
 		for (int32 i = ReversePlan.Num() - 1; i >= 0; --i)
 		{
 			OutPlan.Add(ReversePlan[i]);
+
 		}
 
 		UE_LOG(LogTemp, Warning, TEXT("GetPlan() OutPlan.Num(): %d"), OutPlan.Num());

@@ -7,6 +7,7 @@
 #include "Goal.h"
 #include "Planner.h"
 #include "../Characters/EnemyCharacter.h"
+#include "Components/WidgetComponent.h"
 #include "AgentCharacter.generated.h"
 
 /**
@@ -75,5 +76,14 @@ protected:
 	void TickDoActionImplementation(TObjectPtr<UAction> Action);
 
 	void InitGOAPGoalsActionsWorldStates();
+	
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GOAP NPC")
+	TObjectPtr<UWidgetComponent> GoalWidgetComponent;
+
+	// Function to update the text displayed on the widget
+	UFUNCTION(BlueprintImplementableEvent, Category = "GOAP NPC")
+	void UpdateGoalText(const FString& NewGoalText);
+
 	
 };

@@ -148,7 +148,8 @@ void UPathfindingSubsystem::PopulateNodes()
 		if (ANavigationNode* Node = *It)
 		{
 			NavNodes.Add(Node);
-			UE_LOG(LogTemp, Warning, TEXT("Node at : %s"), *Node->GetActorLocation().ToString());
+			
+			// UE_LOG(LogTemp, Display, TEXT("Node at : %s"), *Node->GetActorLocation().ToString());
 		}
 	}
 }
