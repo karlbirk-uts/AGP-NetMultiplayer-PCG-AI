@@ -248,13 +248,14 @@ void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 	}
 }
 
-bool AAgentCharacter::MoveTowards(const FVector& TargetLocation)
+// changed every instance of 'TargetLocation' in this file to just 'Location' to prevent inheritance issues from EnemyCharacter so things compile, feel free to change back - ivy
+bool AAgentCharacter::MoveTowards(const FVector& Location)
 {
-	FVector Direction = TargetLocation - GetActorLocation();
+	FVector Direction = Location - GetActorLocation();
 	Direction.Normalize();
 	AddMovementInput(Direction, 1);
 
-	if (FVector::DistSquared(TargetLocation, GetActorLocation()) <= 3500.0f)
+	if (FVector::DistSquared(Location, GetActorLocation()) <= 3500.0f)
 	{
 		return true;
 	}

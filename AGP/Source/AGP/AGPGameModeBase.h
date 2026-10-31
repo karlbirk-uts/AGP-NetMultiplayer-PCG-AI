@@ -14,4 +14,13 @@ class AGP_API AAGPGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
 	
+protected:
+	virtual void BeginPlay() override;
+
+	
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	TSubclassOf<UUserWidget> ProceduralWidgetClass;
+
+	
 };
