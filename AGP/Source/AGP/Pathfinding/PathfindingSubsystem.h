@@ -29,7 +29,7 @@ public:
 	
 protected:
 	UPROPERTY()
-	TArray<ANavigationNode*> Nodes;
+	TArray<ANavigationNode*> NavNodes;
 	
 protected:
 	void PopulateNodes();

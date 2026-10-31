@@ -44,12 +44,16 @@ TArray<FVector> UPathfindingSubsystem::GetPathAway(const FVector& StartLocation,
 	return GetPath(FindNearestNode(StartLocation), FindFurthestNode(TargetLocation));
 }
 
-void UPathfindingSubsystem::PlaceProceduralNodes(const TArray<FVector>& Vertices, const int32 Width, const int32 Height, AActor* ParentActor)
+void UPathfindingSubsystem::PlaceProceduralNodes(
+	const TArray<FVector>& Vertices, 
+	const int32 Width, 
+	const int32 Height, 
+	AActor* ParentActor)
 {
 	//Clear nodes
 	RemoveAllNodes();
 
-	// Spawn Nodes and add to the Nodes array.
+	// SPAWN NODES; ADD TO NavNodes array.
 	for (int i = 0; i < Width; ++i)
 	{
 		for (int j = 0; j < Height; ++j)
@@ -57,7 +61,7 @@ void UPathfindingSubsystem::PlaceProceduralNodes(const TArray<FVector>& Vertices
 			FVector Position = Vertices[ i + j * Width];
 			if (ANavigationNode* Node = GetWorld()->SpawnActor<ANavigationNode>(Position,FRotator::ZeroRotator))
 			{
-				Nodes.Add(Node);
+				NavNodes.Add(Node);
 				
 				// Attach to supplied parent actor to nest nodes to mesh and keep them self-contained.
 				if (ParentActor)
@@ -77,7 +81,7 @@ void UPathfindingSubsystem::PlaceProceduralNodes(const TArray<FVector>& Vertices
 	{
 		for (int j = 0; j < Height; ++j)
 		{
-			ANavigationNode* CurrentNode = Nodes[i + j * Width];
+			ANavigationNode* CurrentNode = NavNodes[i + j * Width];
 			
 			if (!CurrentNode) continue;
 
@@ -89,35 +93,35 @@ void UPathfindingSubsystem::PlaceProceduralNodes(const TArray<FVector>& Vertices
 			
 			if (bAddUp)
 			{
-				CurrentNode->AddConnectedNode(Nodes[i + (j+1) * Width]);
+				CurrentNode->AddConnectedNode(NavNodes[i + (j+1) * Width]);
 			}
 			if (bAddDown)
 			{
-				CurrentNode->AddConnectedNode(Nodes[i + (j-1) * Width]);
+				CurrentNode->AddConnectedNode(NavNodes[i + (j-1) * Width]);
 			}
 			if (bAddLeft)
 			{
-				CurrentNode->AddConnectedNode(Nodes[(i+1) + j * Width]);
+				CurrentNode->AddConnectedNode(NavNodes[(i+1) + j * Width]);
 			}
 			if (bAddRight)
 			{
-				CurrentNode->AddConnectedNode(Nodes[(i-1) + j * Width]);
+				CurrentNode->AddConnectedNode(NavNodes[(i-1) + j * Width]);
 			}
 			if (bAddUp && bAddRight)
 			{
-				CurrentNode->AddConnectedNode(Nodes[(i-1) + (j+1) * Width]);
+				CurrentNode->AddConnectedNode(NavNodes[(i-1) + (j+1) * Width]);
 			}
 			if (bAddUp && bAddLeft)
 			{
-				CurrentNode->AddConnectedNode(Nodes[(i+1) + (j+1) * Width]);
+				CurrentNode->AddConnectedNode(NavNodes[(i+1) + (j+1) * Width]);
 			}
 			if (bAddDown && bAddRight)
 			{
-				CurrentNode->AddConnectedNode(Nodes[(i-1) + (j-1) * Width]);
+				CurrentNode->AddConnectedNode(NavNodes[(i-1) + (j-1) * Width]);
 			}
 			if (bAddDown && bAddLeft)
 			{
-				CurrentNode->AddConnectedNode(Nodes[(i+1) + (j-1) * Width]);
+				CurrentNode->AddConnectedNode(NavNodes[(i+1) + (j-1) * Width]);
 			}
 		}
 	}
@@ -126,7 +130,7 @@ void UPathfindingSubsystem::PlaceProceduralNodes(const TArray<FVector>& Vertices
 TArray<FVector> UPathfindingSubsystem::GetWaypointPositions()
 {
 	TArray<FVector> WaypointPositions;
-	for (const ANavigationNode* Node : Nodes)
+	for (const ANavigationNode* Node : NavNodes)
 	{
 		if (!Node) continue;
 		WaypointPositions.Add(Node->GetActorLocation());
@@ -137,13 +141,13 @@ TArray<FVector> UPathfindingSubsystem::GetWaypointPositions()
 
 void UPathfindingSubsystem::PopulateNodes()
 {
-	Nodes.Empty();
+	NavNodes.Empty();
 
 	for (TActorIterator<ANavigationNode> It(GetWorld()); It; ++It)
 	{
 		if (ANavigationNode* Node = *It)
 		{
-			Nodes.Add(Node);
+			NavNodes.Add(Node);
 			UE_LOG(LogTemp, Warning, TEXT("Node at : %s"), *Node->GetActorLocation().ToString());
 		}
 	}
@@ -160,22 +164,22 @@ void UPathfindingSubsystem::RemoveAllNodes()
 		}
 	}
 	// Clear out the list of nodes as pointers are now null.
-	Nodes.Empty();
+	NavNodes.Empty();
 }
 
 ANavigationNode* UPathfindingSubsystem::GetRandomNode()
 {
-	if (Nodes.IsEmpty())
+	if (NavNodes.IsEmpty())
 	{
 		return nullptr;
 	}
 	
-	return Nodes[FMath::RandRange(0, Nodes.Num() - 1)];
+	return NavNodes[FMath::RandRange(0, NavNodes.Num() - 1)];
 }
 
 ANavigationNode* UPathfindingSubsystem::FindNearestNode(const FVector& TargetLocation)
 {
-	if (Nodes.IsEmpty())
+	if (NavNodes.IsEmpty())
 	{
 		return nullptr;
 	}
@@ -183,7 +187,7 @@ ANavigationNode* UPathfindingSubsystem::FindNearestNode(const FVector& TargetLoc
 	float ClosestDistance = FLT_MAX;
 	ANavigationNode* ClosestNode = nullptr;
 	
-	for (ANavigationNode* Node : Nodes)
+	for (ANavigationNode* Node : NavNodes)
 	{
 		if (!Node) continue;
 		if (const float Distance = FVector::Distance(Node->GetActorLocation(), TargetLocation); Distance<ClosestDistance)
@@ -198,7 +202,7 @@ ANavigationNode* UPathfindingSubsystem::FindNearestNode(const FVector& TargetLoc
 
 ANavigationNode* UPathfindingSubsystem::FindFurthestNode(const FVector& TargetLocation)
 {
-	if (Nodes.IsEmpty())
+	if (NavNodes.IsEmpty())
 	{
 		return nullptr;
 	}
@@ -206,7 +210,7 @@ ANavigationNode* UPathfindingSubsystem::FindFurthestNode(const FVector& TargetLo
 	float FurthestDistance = FLT_MIN;
 	ANavigationNode* FurthestNode = nullptr;
 	
-	for (ANavigationNode* Node : Nodes)
+	for (ANavigationNode* Node : NavNodes)
 	{
 		if (!Node) continue;
 		if (const float Distance = FVector::Distance(Node->GetActorLocation(), TargetLocation); Distance>FurthestDistance)
@@ -228,7 +232,7 @@ TArray<FVector> UPathfindingSubsystem::GetPath(ANavigationNode* StartNode, ANavi
 	TArray<ANavigationNode*> OpenSet;
 	TMap<ANavigationNode*, FAStarNodeData*> NodeMap;
 	
-	for (ANavigationNode* Node : Nodes)
+	for (ANavigationNode* Node : NavNodes)
 	{
 		if (!Node) continue;
 		NodeMap.Add(Node, new FAStarNodeData());
@@ -331,6 +335,7 @@ void UPathfindingSubsystem::DrawDebugPath(TArray<FVector> Path) const
 	}
 }
 
+// Reconstruct and reverse path 
 TArray<FVector> UPathfindingSubsystem::ReconstructPath(TMap<ANavigationNode*, FAStarNodeData*> NodeMap,
 	const ANavigationNode* EndNode)
 {

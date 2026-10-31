@@ -55,7 +55,7 @@ protected:
 	float PerlinOffset;
 	
 	
-	void CreateSimplePlane();
+	// void CreateSimplePlane();
 
 public:	
 	// Called every frame
@@ -64,7 +64,7 @@ public:
 	void GenerateLandscape();
 	
 	void ClearLandscape();
-	
-	bool ShouldTickIfViewportsOnly() const override;
+
+	virtual bool ShouldTickIfViewportsOnly() const override;
 
 };

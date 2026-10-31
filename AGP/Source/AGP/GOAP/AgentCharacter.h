@@ -34,10 +34,10 @@ private:
 	FWorldState AgentWorldState; // e.g bHasWeapon, bHasAmmo, bIsWeaponLegendary
 
 	UPROPERTY()
-	TArray<TObjectPtr<UGoal>> Goals; // e.g. GetWeaponGoal, KillEnemyGoal
+	TArray<TObjectPtr<UGoal>> AgentGoals; // e.g. GetWeaponGoal, KillEnemyGoal
 
 	UPROPERTY()
-	TArray<TObjectPtr<UAction>> Actions; // e.g. FireAction, ReloadAction, GetWeaponAction
+	TArray<TObjectPtr<UAction>> AgentActions; // e.g. FireAction, ReloadAction, GetWeaponAction
 
 
 	// Decision-Making Engine
@@ -46,7 +46,7 @@ private:
 
 	// Agent-copy of current best plan. This can change once per tick, currently.
 	UPROPERTY()
-	TArray<TObjectPtr<UAction>> CurrentPlan;
+	TArray<TObjectPtr<UAction>> AgentCurrentPlan;
 
 	UPROPERTY()
 	int32 CurrentPlanIndex = 0;
@@ -64,9 +64,16 @@ private:
 	TObjectPtr<UAction> CurrentQueuedAction = nullptr;
 
 
-	void TickDoActionImplementation(TObjectPtr<UAction> Action);
 	
 	
+	// Helper implementation
 	bool MoveTowards(const FVector& Location);
 
+	void SortGoalsDescendingPriority();
+	
+protected:
+	void TickDoActionImplementation(TObjectPtr<UAction> Action);
+
+	void InitGOAPGoalsActionsWorldStates();
+	
 };
