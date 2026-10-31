@@ -10,11 +10,11 @@ AAgentCharacter::AAgentCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	GoalWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("GoalWidgetComponent"));
-	GoalWidgetComponent->SetupAttachment(RootComponent);
-	GoalWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 195.0f)); // Adjust Z height above NPC head
-	GoalWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen); // Makes text always face the camera
-	GoalWidgetComponent->SetDrawSize(FVector2D(300.0f, 50.0f));
+	// GoalWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("GoalWidgetComponent"));
+	// GoalWidgetComponent->SetupAttachment(RootComponent);
+	// GoalWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 195.0f)); // Adjust Z height above NPC head
+	// GoalWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen); // Makes text always face the camera
+	// GoalWidgetComponent->SetDrawSize(FVector2D(300.0f, 50.0f));
 
 	// Tried c++ and got errors
 	// LogUObjectGlobals: Error: CDO Constructor (AgentCharacter): Failed to find /Game/Blueprints/WBP_AgentGoalDisplay.WBP_AgentGoalDisplay_C
@@ -56,7 +56,8 @@ void AAgentCharacter::Tick(float DeltaTime)
 
 	UpdateTargetLocation();
 
-	TickDoCurrentPlan();
+	// TickDoCurrentPlan();
+	TickDoCurrentPlan5();
 }
 
 
@@ -75,6 +76,8 @@ void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 	if (Action->UniqueName == "Action_Wander")
 	{
 		// UE_LOG(LogTemp, Warning, TEXT("TickDoImplementation() WanderAction"));
+		
+		// Testing whether TickPatrol() is hanging.
 		TickPatrol();
 	}
 	else if (Action->UniqueName == "Action_MoveTowards_GoldSphere")
@@ -131,16 +134,16 @@ void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 void AAgentCharacter::TickDoCurrentPlan()
 {
 	// ******* UI above NPC's head ********
-	if (CurrentQueuedAction && GoalWidgetComponent)
-	{
-		// Get the user widget instance
-		if (UUserWidget* UserWidget = GoalWidgetComponent->GetUserWidgetObject())
-		{
-			// If you cast to a custom C++ UserWidget class or set properties via Blueprint interface:
-			// You can expose a BlueprintImplementableEvent as shown above:
-			UpdateGoalText(CurrentQueuedAction->UniqueName);
-		}
-	}
+	// if (CurrentQueuedAction && GoalWidgetComponent)
+	// {
+	// 	// Get the user widget instance
+	// 	if (UUserWidget* UserWidget = GoalWidgetComponent->GetUserWidgetObject())
+	// 	{
+	// 		// If you cast to a custom C++ UserWidget class or set properties via Blueprint interface:
+	// 		// You can expose a BlueprintImplementableEvent as shown above:
+	// 		UpdateGoalText(CurrentQueuedAction->UniqueName);
+	// 	}
+	// }
 	// ******* UI above NPC's head ********
 
 
@@ -155,6 +158,9 @@ void AAgentCharacter::TickDoCurrentPlan()
 		CurrentQueuedAction->bIsCompleted = false;
 		CurrentQueuedAction = nullptr;
 		// REMOVED: return; -> Let the frame fall through to fetch the next plan/action immediately!
+
+		// not here dc73cf9
+		// return;
 	}
 
 	// 2. If queued action empty/null, try to fetch or build a new plan
@@ -172,12 +178,13 @@ void AAgentCharacter::TickDoCurrentPlan()
 			{
 				if (Goal)
 				{
-					if (AgentWorldState.HasAll(Goal->GoalWorldState))
-					{
-						UE_LOG(LogTemp, Warning, TEXT("TickDoCurrentPlan() if (Goal) AgentWorldState.HasAll(Goal->GoalWorldState)"));
-						
-						continue;
-					}
+					// not here dc73cf9
+					// if (AgentWorldState.HasAll(Goal->GoalWorldState))
+					// {
+					// 	UE_LOG(LogTemp, Warning, TEXT("TickDoCurrentPlan() if (Goal) AgentWorldState.HasAll(Goal->GoalWorldState)"));
+					// 	
+					// 	continue;
+					// }
 
 					// Clear previous plans before passing it into Planner reference
 					AgentCurrentPlan.Empty();
@@ -269,28 +276,28 @@ void AAgentCharacter::InitGOAPGoalsActionsWorldStates()
 	// using predetermined static targets (that aren't too high or low off ground)
 
 	// Gold Sphere goal and action(s)
-	AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), false);
-
+	// AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), false);
+	//
 	// TObjectPtr<UGoal> GoalBeAtGoldSphere = NewObject<UGoal>(this);
 	// GoalBeAtGoldSphere->GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), true);
 	// GoalBeAtGoldSphere->GoalPriority = 2.0f;
 	// AgentGoals.Add(GoalBeAtGoldSphere);
-
-	TObjectPtr<UAction> ActionMoveTowardsGoldSphere = NewObject<UAction>(this);
-	ActionMoveTowardsGoldSphere->UniqueName = "Action_MoveTowards_GoldSphere";
-	ActionMoveTowardsGoldSphere->ActionCost = 0.2;
-	ActionMoveTowardsGoldSphere->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), true);
-	AgentActions.Add(ActionMoveTowardsGoldSphere);
+	//
+	// TObjectPtr<UAction> ActionMoveTowardsGoldSphere = NewObject<UAction>(this);
+	// ActionMoveTowardsGoldSphere->UniqueName = "Action_MoveTowards_GoldSphere";
+	// ActionMoveTowardsGoldSphere->ActionCost = 0.2;
+	// ActionMoveTowardsGoldSphere->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), true);
+	// AgentActions.Add(ActionMoveTowardsGoldSphere);
 
 
 	// Blue Cylinder
 	AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtBlueCylinder"), false);
-
-	// TObjectPtr<UGoal> GoalBeAtBlueCylinder = NewObject<UGoal>(this);
-	// GoalBeAtBlueCylinder->GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtBlueCylinder"), true);
-	// GoalBeAtBlueCylinder->GoalPriority = 31.0f;
-	// AgentGoals.Add(GoalBeAtBlueCylinder);
-
+	
+	TObjectPtr<UGoal> GoalBeAtBlueCylinder = NewObject<UGoal>(this);
+	GoalBeAtBlueCylinder->GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtBlueCylinder"), true);
+	GoalBeAtBlueCylinder->GoalPriority = 3.0f;
+	AgentGoals.Add(GoalBeAtBlueCylinder);
+	
 	TObjectPtr<UAction> ActionMoveTowardsBlueCylinder = NewObject<UAction>(this);
 	ActionMoveTowardsBlueCylinder->UniqueName = "Action_MoveTowards_BlueCylinder";
 	ActionMoveTowardsBlueCylinder->ActionCost = 0.3;
@@ -299,39 +306,39 @@ void AAgentCharacter::InitGOAPGoalsActionsWorldStates()
 
 
 	// Green Cone
-	AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), false);
-
+	// AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), false);
+	//
 	// TObjectPtr<UGoal> GoalBeAtGreenCone = NewObject<UGoal>(this);
 	// GoalBeAtGreenCone->GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), true);
 	// GoalBeAtGreenCone->GoalPriority = 30.0f;
 	// AgentGoals.Add(GoalBeAtGreenCone);
-
-	TObjectPtr<UAction> ActionMoveTowardsGreenCone = NewObject<UAction>(this);
-	ActionMoveTowardsGreenCone->UniqueName = "Action_MoveTowards_GreenCone";
-	ActionMoveTowardsGreenCone->ActionCost = 0.4;
-	ActionMoveTowardsGreenCone->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), true);
-	AgentActions.Add(ActionMoveTowardsGreenCone);
+	//
+	// TObjectPtr<UAction> ActionMoveTowardsGreenCone = NewObject<UAction>(this);
+	// ActionMoveTowardsGreenCone->UniqueName = "Action_MoveTowards_GreenCone";
+	// ActionMoveTowardsGreenCone->ActionCost = 0.4;
+	// ActionMoveTowardsGreenCone->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), true);
+	// AgentActions.Add(ActionMoveTowardsGreenCone);
 
 
 	// Three Colours
 	// THIS can ignore other goals. Planner should be able to use NPC's AgentActions defined earlier
-	AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtThreeDifferentColours"), false);
+	// AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtThreeDifferentColours"), false);
 
-	TObjectPtr<UGoal> GoalHasBeenAtThreeDifferentColours = NewObject<UGoal>(this);
-	GoalHasBeenAtThreeDifferentColours->GoalPriority = 0.1f;
-	GoalHasBeenAtThreeDifferentColours->
-		GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtThreeDifferentColours"), true);
-	AgentGoals.Add(GoalHasBeenAtThreeDifferentColours);
+	// TObjectPtr<UGoal> GoalHasBeenAtThreeDifferentColours = NewObject<UGoal>(this);
+	// GoalHasBeenAtThreeDifferentColours->GoalPriority = 0.1f;
+	// GoalHasBeenAtThreeDifferentColours->
+	// 	GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtThreeDifferentColours"), true);
+	// AgentGoals.Add(GoalHasBeenAtThreeDifferentColours);
 
-	TObjectPtr<UAction> ActionMoveTowardsThreeDifferentColours = NewObject<UAction>(this);
-	ActionMoveTowardsThreeDifferentColours->UniqueName = "Action_MoveTowards_ThreeDifferentColours";
-	ActionMoveTowardsThreeDifferentColours->ActionCost = 0.5;
-	ActionMoveTowardsThreeDifferentColours->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtThreeDifferentColours"), true);
-	ActionMoveTowardsThreeDifferentColours->ActionPrereqs.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), true);
-	ActionMoveTowardsThreeDifferentColours->ActionPrereqs.StatesMap.Add(TEXT("bHasBeenAtBlueCylinder"), true);
-	ActionMoveTowardsThreeDifferentColours->ActionPrereqs.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), true);
-
-	AgentActions.Add(ActionMoveTowardsThreeDifferentColours);
+	// TObjectPtr<UAction> ActionMoveTowardsThreeDifferentColours = NewObject<UAction>(this);
+	// ActionMoveTowardsThreeDifferentColours->UniqueName = "Action_MoveTowards_ThreeDifferentColours";
+	// ActionMoveTowardsThreeDifferentColours->ActionCost = 0.5;
+	// ActionMoveTowardsThreeDifferentColours->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtThreeDifferentColours"), true);
+	// ActionMoveTowardsThreeDifferentColours->ActionPrereqs.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), true);
+	// ActionMoveTowardsThreeDifferentColours->ActionPrereqs.StatesMap.Add(TEXT("bHasBeenAtBlueCylinder"), true);
+	// ActionMoveTowardsThreeDifferentColours->ActionPrereqs.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), true);
+	//
+	// AgentActions.Add(ActionMoveTowardsThreeDifferentColours);
 
 	// VIDEO Example
 	// AgentWorldState.StatesMap.Add(TEXT("bHasMovedToGold"), false);
@@ -389,6 +396,8 @@ void AAgentCharacter::SortGoalsDescendingPriority()
 {
 	// ==== Sort Goals ====
 	// Sort the Goals for quick queue parsing later (Selection Sort)
+	if (AgentGoals.Num() <= 1) return;
+
 
 	// Loop through all Goals, pushing highest priority to front
 	// NOTE: GoalPriority 1.0f is higher priority than 10.0f
@@ -400,9 +409,15 @@ void AAgentCharacter::SortGoalsDescendingPriority()
 		for (int32 j = i + 1; j < AgentGoals.Num(); ++j)
 		{
 			// Compare priorities to find the highest
-			if (AgentGoals[j]->GoalPriority < AgentGoals[HighestPriorityIndex]->GoalPriority)
+			// if (AgentGoals[j]->GoalPriority < AgentGoals[HighestPriorityIndex]->GoalPriority)
+			// {
+			// 	// The lower number is found (higher priority)
+			// 	HighestPriorityIndex = j;
+			// }
+			if (AgentGoals[i] &&
+				AgentGoals[j] &&
+				AgentGoals[j]->GoalPriority < AgentGoals[HighestPriorityIndex]->GoalPriority)
 			{
-				// The lower number is found (higher priority)
 				HighestPriorityIndex = j;
 			}
 		}
@@ -410,9 +425,11 @@ void AAgentCharacter::SortGoalsDescendingPriority()
 		// If this look like a higher priority, swap
 		if (HighestPriorityIndex != i)
 		{
-			TObjectPtr<UGoal> Temp = AgentGoals[i];
-			AgentGoals[i] = AgentGoals[HighestPriorityIndex];
-			AgentGoals[HighestPriorityIndex] = Temp;
+			// TObjectPtr<UGoal> Temp = AgentGoals[i];
+			// AgentGoals[i] = AgentGoals[HighestPriorityIndex];
+			// AgentGoals[HighestPriorityIndex] = Temp;
+			
+			AgentGoals.Swap(i, HighestPriorityIndex);
 		}
 	}
 }
@@ -489,3 +506,90 @@ void AAgentCharacter::SortGoalsDescendingPriority()
 // 		TickDoActionImplementation(CurrentQueuedAction);
 // 	}
 // }
+
+
+void AAgentCharacter::TickDoCurrentPlan5()
+{
+	// 1. Update UI above NPC's head
+	// if (CurrentQueuedAction && GoalWidgetComponent) {
+	//     if (UUserWidget* UserWidget = GoalWidgetComponent->GetUserWidgetObject()) {
+	//         UpdateGoalText(CurrentQueuedAction->UniqueName);
+	//     }
+	// }
+
+	// 2. Handle completion state first
+	if (CurrentQueuedAction && CurrentQueuedAction->bIsCompleted)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Action completed: %s. Applying outcomes."), *CurrentQueuedAction->UniqueName);
+
+		for (const TPair<FString, bool>& ActionOutcome : CurrentQueuedAction->ActionOutcomes.StatesMap)
+		{
+			AgentWorldState.StatesMap.Emplace(ActionOutcome.Key, ActionOutcome.Value);
+		}
+
+		CurrentQueuedAction->bIsCompleted = false;
+		CurrentQueuedAction = nullptr;
+		return; // Halt execution for this frame to let world state settle
+	}
+
+	// 3. If queued action empty/null, try to fetch or build a new plan
+	if (CurrentQueuedAction == nullptr)
+	{
+		if (!CurrentPlanQueue.IsEmpty())
+		{
+			CurrentPlanQueue.Dequeue(CurrentQueuedAction);
+		}
+		else
+		{
+			bool bIsPlanFound = false;
+
+			for (TObjectPtr<UGoal> Goal : AgentGoals)
+			{
+				if (!Goal) continue;
+
+				// If the goal state is already entirely met, skip planning for it
+				if (AgentWorldState.HasAll(Goal->GoalWorldState))
+				{
+					continue;
+				}
+
+				// Clean the plan container before rewriting
+				AgentCurrentPlan.Empty();
+
+				// Testing hanging code here:
+				// Safe guard: Ensure planner actually populates data safely
+				Planner->GetPlan(AgentActions, AgentWorldState, Goal->GoalWorldState, AgentCurrentPlan);
+
+				if (AgentCurrentPlan.Num() > 0)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("NPC successfully formed a new plan for goal!"));
+					for (const UAction* Action : AgentCurrentPlan)
+					{
+						UE_LOG(LogTemp, Log, TEXT(" -> Plan Step: %s"), *Action->UniqueName);
+					}
+
+					BuildQueueFromPlan();
+					bIsPlanFound = true;
+					break; // Found a valid plan, stop looking at lower priority goals
+				}
+			}
+
+			if (bIsPlanFound && !CurrentPlanQueue.IsEmpty())
+			{
+				CurrentPlanQueue.Dequeue(CurrentQueuedAction);
+			}
+			else
+			{
+				// IMPORTANT: If no plan was found for ANY goal, fallback to Wander directly 
+				// to avoid slamming the Planner algorithm frame-after-frame.
+				UE_LOG(LogTemp, VeryVerbose, TEXT("No viable GOAP plan found. Idling."));
+			}
+		}
+	}
+
+	// 4. Execute the current action if valid
+	if (CurrentQueuedAction)
+	{
+		TickDoActionImplementation(CurrentQueuedAction);
+	}
+}

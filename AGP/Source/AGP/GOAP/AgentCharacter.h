@@ -55,7 +55,10 @@ private:
 
 	UFUNCTION()
 	void TickDoCurrentPlan();
-
+	
+	UFUNCTION()
+	void TickDoCurrentPlan5();
+	
 	// Poppable version of TArray used inside TickDoCurrentPlan()
 	TQueue<TObjectPtr<UAction>> CurrentPlanQueue;
 
@@ -78,12 +81,12 @@ protected:
 	void InitGOAPGoalsActionsWorldStates();
 	
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GOAP NPC")
-	TObjectPtr<UWidgetComponent> GoalWidgetComponent;
-
-	// Function to update the text displayed on the widget
-	UFUNCTION(BlueprintImplementableEvent, Category = "GOAP NPC")
-	void UpdateGoalText(const FString& NewGoalText);
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GOAP NPC")
+	// TObjectPtr<UWidgetComponent> GoalWidgetComponent;
+	//
+	// // Function to update the text displayed on the widget
+	// UFUNCTION(BlueprintImplementableEvent, Category = "GOAP NPC")
+	// void UpdateGoalText(const FString& NewGoalText);
 
 	
 };
