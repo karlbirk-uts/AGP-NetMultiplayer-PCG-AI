@@ -32,6 +32,11 @@ void AProceduralLandscape::BeginPlay()
 }
 
 
+void AProceduralLandscape::FakeMethod()
+{
+	UE_LOG(LogTemp, Warning, TEXT("AProceduralLandscape::FakeMethod()"));
+}
+
 // Called every frame
 void AProceduralLandscape::Tick(float DeltaTime)
 {

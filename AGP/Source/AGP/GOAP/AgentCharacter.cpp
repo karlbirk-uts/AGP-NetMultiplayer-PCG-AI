@@ -19,14 +19,14 @@ AAgentCharacter::AAgentCharacter()
 	// Tried c++ and got errors
 	// LogUObjectGlobals: Error: CDO Constructor (AgentCharacter): Failed to find /Game/Blueprints/WBP_AgentGoalDisplay.WBP_AgentGoalDisplay_C
 	// Trying Blueprint (BP_EnemyCharacter with parent AgentCharacter.cpp)
-	static ConstructorHelpers::FClassFinder<UUserWidget>
-		WidgetClassFinder(
-			TEXT("/Game/Blueprints/WBP_GOAPAgentThoughts.WBP_GOAPAgentThoughts_C"));
-
-	if (WidgetClassFinder.Succeeded())
-	{
-		GoalWidgetComponent->SetWidgetClass(WidgetClassFinder.Class);
-	}
+	// static ConstructorHelpers::FClassFinder<UUserWidget>
+	// 	WidgetClassFinder(
+	// 		TEXT("/Game/Blueprints/WBP_GOAPAgentThoughts.WBP_GOAPAgentThoughts_C"));
+	//
+	// if (WidgetClassFinder.Succeeded())
+	// {
+	// 	GoalWidgetComponent->SetWidgetClass(WidgetClassFinder.Class);
+	// }
 }
 
 
@@ -72,7 +72,7 @@ void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 	// e.g. Evade(), Fire(), MoveTowardsGoal()
 
 
-	if (Action->UniqueName == "WanderAction")
+	if (Action->UniqueName == "Action_Wander")
 	{
 		// UE_LOG(LogTemp, Warning, TEXT("TickDoImplementation() WanderAction"));
 		TickPatrol();
@@ -121,6 +121,8 @@ void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 	}
 	else if (Action->UniqueName == "Action_MoveTowards_ThreeDifferentColours")
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Action_MoveTowards_ThreeDifferentColours->bIsCompleted = true"));
+
 		Action->bIsCompleted = true;
 	}
 }
@@ -172,10 +174,12 @@ void AAgentCharacter::TickDoCurrentPlan()
 				{
 					if (AgentWorldState.HasAll(Goal->GoalWorldState))
 					{
-						break;
+						UE_LOG(LogTemp, Warning, TEXT("TickDoCurrentPlan() if (Goal) AgentWorldState.HasAll(Goal->GoalWorldState)"));
+						
+						continue;
 					}
 
-					// Clear previous plans before passing it into your Planner reference!
+					// Clear previous plans before passing it into Planner reference
 					AgentCurrentPlan.Empty();
 
 					Planner->GetPlan(AgentActions, AgentWorldState, Goal->GoalWorldState, AgentCurrentPlan);
