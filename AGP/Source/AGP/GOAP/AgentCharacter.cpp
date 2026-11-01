@@ -121,16 +121,16 @@ void AAgentCharacter::BuildQueueFromPlan()
 	}
 }
 
-bool AAgentCharacter::MoveTowards(const FVector& TargetLocation)
+bool AAgentCharacter::MoveTowards(const FVector& DesiredLocation)
 {
 	FVector NPCLocation = GetActorLocation();
 
-	FVector Direction = TargetLocation - GetActorLocation();
+	FVector Direction = DesiredLocation - GetActorLocation();
 	Direction.Normalize();
 	AddMovementInput(Direction, 1.0f);
 
 
-	if (FVector::DistSquared(TargetLocation, NPCLocation) <= 62500.0f) // 2.5m
+	if (FVector::DistSquared(DesiredLocation, NPCLocation) <= 62500.0f) // 2.5m
 	{
 		return true;
 	}
