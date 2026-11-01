@@ -31,7 +31,11 @@ void ANavigationNode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	DrawDebugSphere(GetWorld(), GetActorLocation(), 50.0f, 16, FColor::Blue, true);
+	DrawDebugSphere(
+		GetWorld(), 
+		GetActorLocation(), 
+		50.0f, 
+		16, FColor::Blue, true);
 	for (auto Node : ConnectedNodes)
 	{
 		if (!Node) continue;
@@ -47,7 +51,15 @@ void ANavigationNode::BeginPlay()
 				break;
 			}
 		}
-		DrawDebugLine(GetWorld(), GetActorLocation(), Node->GetActorLocation(), LineColor, true, -1, 0, LineThickness);
+		DrawDebugLine(
+			GetWorld(), 
+			GetActorLocation(), 
+			Node->GetActorLocation(), 
+			LineColor, 
+			true, 
+			-1, 
+			0,
+			LineThickness);
 	}
 
 	
