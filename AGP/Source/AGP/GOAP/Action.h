@@ -19,8 +19,11 @@ class AGP_API UAction: public UObject
 public:
 	
 	// 1.0f preferred over 10.0f by UPlanner::GetPlan()
-	float ActionCost = MAX_flt; // i changed it to this so it would compile, feel free to change it back - ivy
+	// float ActionCost = MAXFLOAT;
+	// float ActionCost = MAX_flt;
+	float ActionCost = TNumericLimits<float>::Max();
 
+		
 	// Unique, comparable name.
 	FString UniqueName = "";
 

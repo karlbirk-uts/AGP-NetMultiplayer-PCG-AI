@@ -115,7 +115,7 @@ void AEnemyCharacter::OnSensedActor(AActor* Actor, FAIStimulus Stimulus)
 		if (Stimulus.WasSuccessfullySensed())
 		{
 			SensedPlayer = Player;
-			UE_LOG(LogTemp, Display, TEXT("Sensed Player"))
+			// UE_LOG(LogTemp, Display, TEXT("Sensed Player"))
 			
 		}
 	}
@@ -130,7 +130,7 @@ void AEnemyCharacter::OnForgetActor(AActor* Actor)
 	{
 		if (Player==SensedPlayer)
 		{
-			UE_LOG(LogTemp, Display, TEXT("Lost Player"))
+			// UE_LOG(LogTemp, Display, TEXT("Lost Player"))
 			SensedPlayer = nullptr;
 		}
 	}

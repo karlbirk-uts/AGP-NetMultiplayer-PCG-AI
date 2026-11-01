@@ -5,10 +5,13 @@
 #include "CoreMinimal.h"
 #include "FWorldState.h"
 #include "Goal.h"
-#include "Planner.h"
+// #include "Planner.h"
+#include "Action.h"
 #include "../Characters/EnemyCharacter.h"
+#include "Components/WidgetComponent.h"
 #include "AgentCharacter.generated.h"
 
+struct FAgentPlannerNode;
 /**
  * 
  */
@@ -34,27 +37,30 @@ private:
 	FWorldState AgentWorldState; // e.g bHasWeapon, bHasAmmo, bIsWeaponLegendary
 
 	UPROPERTY()
-	TArray<TObjectPtr<UGoal>> Goals; // e.g. GetWeaponGoal, KillEnemyGoal
+	TArray<TObjectPtr<UGoal>> AgentGoals; // e.g. GetWeaponGoal, KillEnemyGoal
 
 	UPROPERTY()
-	TArray<TObjectPtr<UAction>> Actions; // e.g. FireAction, ReloadAction, GetWeaponAction
+	TArray<TObjectPtr<UAction>> AgentActions; // e.g. FireAction, ReloadAction, GetWeaponAction
 
 
 	// Decision-Making Engine
-	UPROPERTY()
-	TObjectPtr<UPlanner> Planner;
+	// UPROPERTY()
+	// TObjectPtr<UPlanner> Planner;
 
-	// Agent-copy of current best plan. This can change more than once per tick, currently.
+	// Agent-copy of current best plan. This can change once per tick, currently.
 	UPROPERTY()
-	TArray<TObjectPtr<UAction>> CurrentPlan;
+	TArray<TObjectPtr<UAction>> AgentCurrentPlan;
 
 	UPROPERTY()
 	int32 CurrentPlanIndex = 0;
 
 
+	// UFUNCTION()
+	// void TickDoCurrentPlan();
+	
 	UFUNCTION()
-	void TickDoCurrentPlan();
-
+	void TickDoCurrentPlan5();
+	
 	// Poppable version of TArray used inside TickDoCurrentPlan()
 	TQueue<TObjectPtr<UAction>> CurrentPlanQueue;
 
@@ -63,10 +69,87 @@ private:
 	UPROPERTY()
 	TObjectPtr<UAction> CurrentQueuedAction = nullptr;
 
+	// Testing timer to reset some AgentWworldState values to false
+	FTimerHandle VariableTimerHandle;
 
-	void TickDoActionImplementation(TObjectPtr<UAction> Action);
 	
 	
+	// Helper implementation
 	bool MoveTowards(const FVector& Location);
 
+	void SortGoalsDescendingPriority();
+	
+protected:
+	void TickDoActionImplementation(TObjectPtr<UAction> Action);
+
+	void InitGOAPGoalsActionsWorldStates();
+	
+	void AgentTickPatrol(UAction* CurrentAgentAction);
+	void AgentMoveAlongPath(UAction* CurrentAgentAction);
+	
+	// Testing timer to reset some AgentWworldState values to false
+	void ResetGoldBlueGreenGoals();
+	
+public:
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GOAP NPC")
+	// TObjectPtr<UWidgetComponent> GoalWidgetComponent;
+	//
+	// // Function to update the text displayed on the widget
+	// UFUNCTION(BlueprintImplementableEvent, Category = "GOAP NPC")
+	// void UpdateGoalText(const FString& NewGoalText);
+
+	
+	
+	
+	
+	
+	
+	
+	// TESTING ALT PLANNER
+public:
+	// Get A* efficient queue of Actions to reach Goal
+	bool AgentGetPlan(
+		TArray<TObjectPtr<UAction>> AllNPCActions,
+		const FWorldState& NPCState,
+		const FWorldState& GoalState,
+		TArray<TObjectPtr<UAction>>& OutPlan
+	);
+
+private:
+
+	// Local reusable node queue to test all from-Goal-to-Actions-to-NPCState 
+	// permutations	that potentially connect NPCState to Goal.
+	// TArray<FPlannerNode> PlannerNodes;
+	TArray<FAgentPlannerNode> PlannerNodes;
+
+	// Parsing nodes using specific index
+	TArray<int32> OpenSetIndex;
+	TArray<int32> ClosedSetIndex;
+
+	// NON-POINTER version of graph building because GC 
+	// seems to be hungry.
+	int32 AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode);
+	
+	
+};
+
+
+struct FAgentPlannerNode
+{
+	// Tree info 
+	int32 Index = INDEX_NONE;
+	int32 ParentIndex = INDEX_NONE;
+
+	// One action per node.
+	// Action/s is/are owned by UGOAPAgentComponent
+	// TWeakObjectPtr<UGOAPAction> Action = nullptr;
+	TObjectPtr<UAction> NodeAction = nullptr;
+
+	// Node-specific info on its cost to tree branch (stack) cost.
+	float GCost = 0.0f; // GCost. From starting node, sum of all costs.
+	float HCost = 0.0f; // Cost to get to goal (not used yet).
+	float FCost() const { return GCost + HCost; }; // A* total cost ( GCost + HCost ).
+
+	// Upon tree planning, truth table evolves per node.
+	FWorldState NodeWorldState;
 };

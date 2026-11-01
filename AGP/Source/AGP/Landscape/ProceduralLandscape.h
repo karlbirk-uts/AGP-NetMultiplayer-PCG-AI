@@ -55,8 +55,10 @@ protected:
 	float PerlinOffset;
 	
 	
-	void CreateSimplePlane();
+	// void CreateSimplePlane();
 
+	void FakeMethod();
+	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -64,7 +66,7 @@ public:
 	void GenerateLandscape();
 	
 	void ClearLandscape();
-	
-	bool ShouldTickIfViewportsOnly() const override;
+
+	virtual bool ShouldTickIfViewportsOnly() const override;
 
 };
