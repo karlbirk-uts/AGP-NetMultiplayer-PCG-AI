@@ -52,6 +52,32 @@ void UPathfindingSubsystem::PlaceProceduralNodes(
 	//Clear nodes
 	RemoveAllNodes();
 
+
+	// TArray<FVector> CentredNavNodeVertices;
+	// CentredNavNodeVertices.Reserve((Width - 1) * (Height - 1));
+	//
+	// for (int32 i = 0; i < Height - 1; i++)
+	// {
+	// 	for (int32 j = 0; j < Width - 1; j++)
+	// 	{
+	// 		int32 SW = i * Width + j;
+	// 		int32 SE = SW + 1;
+	// 		int32 NW = (i + 1) * Width + j;
+	// 		int32 NE = NW + 1;
+	//
+	// 		// Middle
+	// 		FVector CenterPos =
+	// 			(Vertices[SW] +
+	// 				Vertices[SE] +
+	// 				Vertices[NW] +
+	// 				Vertices[NE])
+	// 			* 0.25f;
+	//
+	// 		CentredNavNodeVertices.Add(CenterPos);
+	// 	}
+	// }
+
+
 	// SPAWN NODES; ADD TO NavNodes array.
 	for (int i = 0; i < Width; ++i)
 	{
@@ -355,4 +381,129 @@ TArray<FVector> UPathfindingSubsystem::ReconstructPath(TMap<ANavigationNode*, FA
 	DrawDebugPath(Path);
 
 	return Path;
+}
+
+
+void UPathfindingSubsystem::PlaceProceduralNodes5(const TArray<FVector>& Vertices, const int32 Width, const int32 Height, AActor* ParentActor)
+{
+    // Clear existing tracking arrays
+    RemoveAllNodes(); 
+
+    // 1. Calculate Centered Node Positions
+    TArray<FVector> CentredNavNodeVertices;
+    const int32 CenterWidth = Width - 1;
+    const int32 CenterHeight = Height - 1;
+    CentredNavNodeVertices.Reserve(CenterWidth * CenterHeight);
+
+    for (int32 i = 0; i < CenterHeight; i++)
+    {
+        for (int32 j = 0; j < CenterWidth; j++)
+        {
+            int32 SW = i * Width + j;
+            int32 SE = SW + 1;
+            int32 NW = (i + 1) * Width + j;
+            int32 NE = NW + 1;
+
+            FVector CenterPos = (Vertices[SW] + Vertices[SE] + Vertices[NW] + Vertices[NE]) * 0.25f;
+            CentredNavNodeVertices.Add(CenterPos);
+        }
+    }
+
+    // 2. Helper Lambda for spawning nodes safely
+    auto SpawnNodeAtPosition = [this, ParentActor](const FVector& Position) -> ANavigationNode*
+    {
+        if (UWorld* World = GetWorld())
+        {
+            if (ANavigationNode* Node = World->SpawnActor<ANavigationNode>(Position, FRotator::ZeroRotator))
+            {
+                if (ParentActor)
+                {
+                    Node->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform);
+                }
+                return Node;
+            }
+        }
+        UE_LOG(LogTemp, Error, TEXT("Unable to spawn a node at %s."), *Position.ToString());
+        return nullptr;
+    };
+
+    // 3. Allocate and Spawn Corner Vertex Nodes
+    TArray<ANavigationNode*> VertexNodes;
+    VertexNodes.SetNumZeroed(Width * Height);
+
+    for (int32 j = 0; j < Height; ++j)
+    {
+        for (int32 i = 0; i < Width; ++i)
+        {
+            int32 Index = i + j * Width;
+            VertexNodes[Index] = SpawnNodeAtPosition(Vertices[Index]);
+            if (VertexNodes[Index])
+            {
+                NavNodes.Add(VertexNodes[Index]); // Track in master array
+            }
+        }
+    }
+
+    // 4. Allocate and Spawn Centered Grid Nodes
+    TArray<ANavigationNode*> CenterNodes;
+    CenterNodes.SetNumZeroed(CenterWidth * CenterHeight);
+
+    for (int32 j = 0; j < CenterHeight; ++j)
+    {
+        for (int32 i = 0; i < CenterWidth; ++i)
+        {
+            int32 Index = i + j * CenterWidth;
+            CenterNodes[Index] = SpawnNodeAtPosition(CentredNavNodeVertices[Index]);
+            if (CenterNodes[Index])
+            {
+                NavNodes.Add(CenterNodes[Index]); // Track in master array
+            }
+        }
+    }
+
+    // 5. Connect Vertex Nodes to their structural Vertex neighbors (8-way grid)
+    for (int32 j = 0; j < Height; ++j)
+    {
+        for (int32 i = 0; i < Width; ++i)
+        {
+            ANavigationNode* CurrentNode = VertexNodes[i + j * Width];
+            if (!CurrentNode) continue;
+
+            const bool bAddLeft  = i < Width - 1;
+            const bool bAddRight = i > 0;
+            const bool bAddUp    = j < Height - 1;
+            const bool bAddDown  = j > 0;
+
+            if (bAddUp)            CurrentNode->AddConnectedNode(VertexNodes[i + (j + 1) * Width]);
+            if (bAddDown)          CurrentNode->AddConnectedNode(VertexNodes[i + (j - 1) * Width]);
+            if (bAddLeft)          CurrentNode->AddConnectedNode(VertexNodes[(i + 1) + j * Width]);
+            if (bAddRight)         CurrentNode->AddConnectedNode(VertexNodes[(i - 1) + j * Width]);
+            if (bAddUp && bAddRight)   CurrentNode->AddConnectedNode(VertexNodes[(i - 1) + (j + 1) * Width]);
+            if (bAddUp && bAddLeft)    CurrentNode->AddConnectedNode(VertexNodes[(i + 1) + (j + 1) * Width]);
+            if (bAddDown && bAddRight) CurrentNode->AddConnectedNode(VertexNodes[(i - 1) + (j - 1) * Width]);
+            if (bAddDown && bAddLeft)  CurrentNode->AddConnectedNode(VertexNodes[(i + 1) + (j - 1) * Width]);
+        }
+    }
+
+    // 6. Cross-Connect Center Nodes to their 4 surrounding Corner Nodes
+    for (int32 j = 0; j < CenterHeight; ++j)
+    {
+        for (int32 i = 0; i < CenterWidth; ++i)
+        {
+            ANavigationNode* CenterNode = CenterNodes[i + j * CenterWidth];
+            if (!CenterNode) continue;
+
+            // Map center cell index to its 4 corner vertex coordinates
+            int32 SW_Idx = i + j * Width;
+            int32 SE_Idx = (i + 1) + j * Width;
+            int32 NW_Idx = i + (j + 1) * Width;
+            int32 NE_Idx = (i + 1) + (j + 1) * Width;
+
+            // Connect center node outward to corners, and corners back inward to center
+            if (ANavigationNode* SW = VertexNodes[SW_Idx]) { CenterNode->AddConnectedNode(SW); SW->AddConnectedNode(CenterNode); }
+            if (ANavigationNode* SE = VertexNodes[SE_Idx]) { CenterNode->AddConnectedNode(SE); SE->AddConnectedNode(CenterNode); }
+            if (ANavigationNode* NW = VertexNodes[NW_Idx]) { CenterNode->AddConnectedNode(NW); NW->AddConnectedNode(CenterNode); }
+            if (ANavigationNode* NE = VertexNodes[NE_Idx]) { CenterNode->AddConnectedNode(NE); NE->AddConnectedNode(CenterNode); }
+        }
+    }
 }
