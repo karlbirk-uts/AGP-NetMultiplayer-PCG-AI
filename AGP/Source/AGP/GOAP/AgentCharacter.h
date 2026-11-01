@@ -5,11 +5,13 @@
 #include "CoreMinimal.h"
 #include "FWorldState.h"
 #include "Goal.h"
-#include "Planner.h"
+// #include "Planner.h"
+#include "Action.h"
 #include "../Characters/EnemyCharacter.h"
 #include "Components/WidgetComponent.h"
 #include "AgentCharacter.generated.h"
 
+struct FAgentPlannerNode;
 /**
  * 
  */
@@ -42,8 +44,8 @@ private:
 
 
 	// Decision-Making Engine
-	UPROPERTY()
-	TObjectPtr<UPlanner> Planner;
+	// UPROPERTY()
+	// TObjectPtr<UPlanner> Planner;
 
 	// Agent-copy of current best plan. This can change once per tick, currently.
 	UPROPERTY()
@@ -53,8 +55,8 @@ private:
 	int32 CurrentPlanIndex = 0;
 
 
-	UFUNCTION()
-	void TickDoCurrentPlan();
+	// UFUNCTION()
+	// void TickDoCurrentPlan();
 	
 	UFUNCTION()
 	void TickDoCurrentPlan5();
@@ -67,6 +69,8 @@ private:
 	UPROPERTY()
 	TObjectPtr<UAction> CurrentQueuedAction = nullptr;
 
+	// Testing timer to reset some AgentWworldState values to false
+	FTimerHandle VariableTimerHandle;
 
 	
 	
@@ -80,6 +84,12 @@ protected:
 
 	void InitGOAPGoalsActionsWorldStates();
 	
+	void AgentTickPatrol(UAction* CurrentAgentAction);
+	void AgentMoveAlongPath(UAction* CurrentAgentAction);
+	
+	// Testing timer to reset some AgentWworldState values to false
+	void ResetGoldBlueGreenGoals();
+	
 public:
 	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GOAP NPC")
 	// TObjectPtr<UWidgetComponent> GoalWidgetComponent;
@@ -89,4 +99,57 @@ public:
 	// void UpdateGoalText(const FString& NewGoalText);
 
 	
+	
+	
+	
+	
+	
+	
+	// TESTING ALT PLANNER
+public:
+	// Get A* efficient queue of Actions to reach Goal
+	bool AgentGetPlan(
+		TArray<TObjectPtr<UAction>> AllNPCActions,
+		const FWorldState& NPCState,
+		const FWorldState& GoalState,
+		TArray<TObjectPtr<UAction>>& OutPlan
+	);
+
+private:
+
+	// Local reusable node queue to test all from-Goal-to-Actions-to-NPCState 
+	// permutations	that potentially connect NPCState to Goal.
+	// TArray<FPlannerNode> PlannerNodes;
+	TArray<FAgentPlannerNode> PlannerNodes;
+
+	// Parsing nodes using specific index
+	TArray<int32> OpenSetIndex;
+	TArray<int32> ClosedSetIndex;
+
+	// NON-POINTER version of graph building because GC 
+	// seems to be hungry.
+	int32 AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode);
+	
+	
+};
+
+
+struct FAgentPlannerNode
+{
+	// Tree info 
+	int32 Index = INDEX_NONE;
+	int32 ParentIndex = INDEX_NONE;
+
+	// One action per node.
+	// Action/s is/are owned by UGOAPAgentComponent
+	// TWeakObjectPtr<UGOAPAction> Action = nullptr;
+	TObjectPtr<UAction> NodeAction = nullptr;
+
+	// Node-specific info on its cost to tree branch (stack) cost.
+	float GCost = 0.0f; // GCost. From starting node, sum of all costs.
+	float HCost = 0.0f; // Cost to get to goal (not used yet).
+	float FCost() const { return GCost + HCost; }; // A* total cost ( GCost + HCost ).
+
+	// Upon tree planning, truth table evolves per node.
+	FWorldState NodeWorldState;
 };
