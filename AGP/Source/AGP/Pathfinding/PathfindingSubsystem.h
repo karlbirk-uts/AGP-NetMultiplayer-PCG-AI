@@ -24,6 +24,8 @@ public:
 	TArray<FVector> GetPathAway(const FVector& StartLocation, const FVector& TargetLocation);
 	
 	void PlaceProceduralNodes(const TArray<FVector>& Vertices, const int32 Width, const int32 Height, AActor* ParentActor);
+
+
 	
 	TArray<FVector> GetWaypointPositions();
 	

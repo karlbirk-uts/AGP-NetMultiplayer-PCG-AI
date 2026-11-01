@@ -35,7 +35,7 @@ void ANavigationNode::BeginPlay()
 		GetWorld(), 
 		GetActorLocation(), 
 		50.0f, 
-		16, FColor::Blue, true);
+		16, FColor::Yellow, true, -1, 0, 2.0f);
 	for (auto Node : ConnectedNodes)
 	{
 		if (!Node) continue;
@@ -46,7 +46,7 @@ void ANavigationNode::BeginPlay()
 			if (!NeighbourNode) continue;
 			if (NeighbourNode == this)
 			{
-				LineColor = FColor::Blue;
+				LineColor = FColor::Yellow;
 				LineThickness = 1.0f;
 				break;
 			}
@@ -59,7 +59,7 @@ void ANavigationNode::BeginPlay()
 			true, 
 			-1, 
 			0,
-			LineThickness);
+			2.0f);
 	}
 
 	

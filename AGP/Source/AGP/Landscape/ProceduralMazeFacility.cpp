@@ -154,6 +154,20 @@ void AProceduralMazeFacility::GenerateFloorGrid()
 			CentredNavNodes.Add(CenterPos);
 		}
 	}
+	
+
+	UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility GenerateFloorGrid Vertices.Num(): %d"), Vertices.Num());
+	UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility GenerateFloorGrid CentredNavNodes.Num(): %d"), CentredNavNodes.Num());
+
+	
+	// TESTING Centred+Vertices
+	TArray<FVector> CentredAndVerticesNavNodes;
+	CentredAndVerticesNavNodes.Reserve(Vertices.Num()+CentredNavNodes.Num());
+
+
+	
+	CentredAndVerticesNavNodes.Append(Vertices);
+	CentredAndVerticesNavNodes.Append(CentredNavNodes);
 
 	if (UPathfindingSubsystem* PathfindingSubsystem = GetWorld()->GetSubsystem<UPathfindingSubsystem>())
 	{
@@ -164,7 +178,6 @@ void AProceduralMazeFacility::GenerateFloorGrid()
 			this
 		);
 	}
-
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility couldn't see UPathfindingSubsystem"));
