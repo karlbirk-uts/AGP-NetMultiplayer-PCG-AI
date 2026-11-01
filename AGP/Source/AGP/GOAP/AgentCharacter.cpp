@@ -147,13 +147,14 @@ void AAgentCharacter::InitGOAPGoalsActionsWorldStates()
 
 	TObjectPtr<UGoal> GoalWander = NewObject<UGoal>(this);
 	GoalWander->GoalWorldState.StatesMap.Add(TEXT("bHasWandered"), true);
-	GoalWander->GoalPriority = 10.0f;
+	GoalWander->GoalPriority = 99.0f;
 	AgentGoals.Add(GoalWander);
 
 	TObjectPtr<UAction> ActionWander = NewObject<UAction>(this);
 	ActionWander->UniqueName = "Action_Wander";
 	ActionWander->ActionCost = 10.0f;
 	ActionWander->ActionOutcomes.StatesMap.Add(TEXT("bHasWandered"), true);
+	ActionWander->ActionPrereqs.StatesMap.Empty();
 	AgentActions.Add(ActionWander);
 
 
@@ -241,7 +242,7 @@ void AAgentCharacter::SortGoalsDescendingPriority()
 
 void AAgentCharacter::TickDoCurrentPlan5()
 {
-	// When action is completed, update AgentWorldState
+	// When action has completed, update AgentWorldState
 	if (CurrentQueuedAction && CurrentQueuedAction->bIsCompleted)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Action completed: %s. Applying outcomes."), *CurrentQueuedAction->UniqueName);
@@ -313,6 +314,8 @@ void AAgentCharacter::TickDoCurrentPlan5()
 					{
 						// THIS hack IGNORES whether this action's outcome had updated agentworldstate.
 						CurrentQueuedAction = Action;
+						CurrentQueuedAction->bIsCompleted = false;
+						AgentWorldState.StatesMap.Emplace(TEXT("bHasWandered"),false);
 						break;
 					}
 				}
