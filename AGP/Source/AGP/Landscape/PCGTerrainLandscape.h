@@ -51,7 +51,7 @@ protected:
 
 public:
 	virtual void Tick(float DeltaTime) override;
-	//virtual bool ShouldTickIfViewportsOnly() const override;
+	virtual bool ShouldTickIfViewportsOnly() const override;
     
 	TArray<float> TerrainHeights;
 

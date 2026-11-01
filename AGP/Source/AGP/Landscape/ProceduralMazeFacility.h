@@ -124,4 +124,8 @@ public: // for obstacles!
     
     UPROPERTY(EditAnywhere, Category = "Maze")
     AMazeObstacleManager* ObstacleManager;
+    
+    
+    virtual bool ShouldTickIfViewportsOnly() const override;
+
 };

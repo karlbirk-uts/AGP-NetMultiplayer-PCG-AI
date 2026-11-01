@@ -48,12 +48,12 @@ void APCGTerrainLandscape::ClearLandscape()
     UKismetSystemLibrary::FlushPersistentDebugLines(GetWorld());
 }
 
-/*
+
 bool APCGTerrainLandscape::ShouldTickIfViewportsOnly() const
 {
-    return false;
+    return true;
 }
-*/
+
 
 void APCGTerrainLandscape::GenerateLandscape()
 {

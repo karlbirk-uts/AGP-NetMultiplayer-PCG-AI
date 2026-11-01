@@ -312,3 +312,10 @@ FVector AProceduralMazeFacility::GetCellWorldPosition(int32 CellX, int32 CellY) 
         0.0f
     );
 }
+
+bool AProceduralMazeFacility::ShouldTickIfViewportsOnly() const
+{
+    return true;
+}
+
+
