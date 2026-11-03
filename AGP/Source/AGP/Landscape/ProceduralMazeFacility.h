@@ -19,7 +19,7 @@ struct FMazeCell
     bool Visited   = false;
 };
 
-UCLASS()
+UCLASS(PrioritizeCategories="00 | Maze")
 class AGP_API AProceduralMazeFacility : public AActor
 {
     GENERATED_BODY()
@@ -31,25 +31,25 @@ public:
 protected:
     virtual void BeginPlay() override;
     
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Maze", meta=(AllowPrivateAccess="true"))
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="00 | Maze", meta=(AllowPrivateAccess="true"))
     UProceduralMeshComponent* MazeMesh;
     
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Maze", meta=(AllowPrivateAccess="true"))
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="00 | Maze", meta=(AllowPrivateAccess="true"))
     UProceduralMeshComponent* WallMesh;
 
-    UPROPERTY(EditAnywhere, Category="Maze")
+    UPROPERTY(EditAnywhere, Category="00 | Maze")
     int32 MazeWidth = 16;
 
-    UPROPERTY(EditAnywhere, Category="Maze")
+    UPROPERTY(EditAnywhere, Category="00 | Maze")
     int32 MazeHeight = 16;
 
-    UPROPERTY(EditAnywhere, Category="Maze")
+    UPROPERTY(EditAnywhere, Category="00 | Maze")
     float CellSize = 300.0f;
 
-    UPROPERTY(EditAnywhere, Category="Maze")
+    UPROPERTY(EditAnywhere, Category="00 | Maze")
     UMaterialInterface* FloorMaterial;
 
-    UPROPERTY(EditAnywhere, Category="Maze")
+    UPROPERTY(EditAnywhere, Category="00 | Maze")
     UMaterialInterface* WallMaterial;
 
     TArray<TArray<FMazeCell>> MazeCells;
@@ -63,13 +63,13 @@ protected:
     int32 EndCellY   = 0;
 
 public:
-    UFUNCTION(BlueprintCallable, Category="Maze")
+    UFUNCTION(BlueprintCallable, Category="00 | Maze")
     void GenerateMaze();
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, Category = "00 | Maze")
     bool bShouldRegenerate = false;
 
-    UFUNCTION(BlueprintCallable, Category="Maze")
+    UFUNCTION(BlueprintCallable, Category="00 | Maze")
     void RequestRegenerate()
     {
         bShouldRegenerate = true;
@@ -122,7 +122,7 @@ public: // for obstacles!
     UFUNCTION(BlueprintCallable)
     FVector GetCellWorldPosition(int32 CellX, int32 CellY) const;
     
-    UPROPERTY(EditAnywhere, Category = "Maze")
+    UPROPERTY(EditAnywhere, Category = "00 | Maze")
     AMazeObstacleManager* ObstacleManager;
     
     

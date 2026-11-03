@@ -5,7 +5,7 @@
 #include "GameFramework/Actor.h"
 #include "PCGTerrainLandscape.generated.h"
 
-UCLASS()
+UCLASS(PrioritizeCategories="Landscape Fence")
 class AGP_API APCGTerrainLandscape : public AActor
 {
 	GENERATED_BODY()

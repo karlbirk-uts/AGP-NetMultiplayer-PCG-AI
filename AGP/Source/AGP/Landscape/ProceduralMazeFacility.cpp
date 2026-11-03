@@ -118,7 +118,7 @@ void AProceduralMazeFacility::GenerateFloorGrid()
 	{
 	    UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility UPathfindingSubsystem new nodes"));
 	    PathfindingSubsystem->
-	        PlaceProceduralNodes5(
+	        MazePCGPlaceProceduralNodes(
 	            Vertices,
 	            MazeWidth,
 	            MazeHeight,

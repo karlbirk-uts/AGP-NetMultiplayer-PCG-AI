@@ -7,7 +7,7 @@
 class AProceduralMazeFacility;
 class AObstacleBase;
 
-UCLASS()
+UCLASS(PrioritizeCategories="Maze Obstacles")
 class AGP_API AMazeObstacleManager : public AActor
 {
 	GENERATED_BODY()
