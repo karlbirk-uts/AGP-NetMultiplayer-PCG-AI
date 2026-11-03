@@ -31,12 +31,12 @@ FIntPoint AMazeObstacleManager::GetRandomFreeCell()
     while (Attempts--)
     {
         int32 X =
-            FMath::RandRange(
+            RandomStream.RandRange(
                 0,
                 MazeReference->GetCellsWidth() - 1);
 
         int32 Y =
-            FMath::RandRange(
+            RandomStream.RandRange(
                 0,
                 MazeReference->GetCellsHeight() - 1);
 
@@ -132,7 +132,7 @@ FIntPoint AMazeObstacleManager::GetBestSpillCell() const
     if (SpillCells.IsEmpty())
     {
         const int32 RandomIndex =
-            FMath::RandRange(
+            RandomStream.RandRange(
                 0,
                 Candidates.Num() - 1);
 
@@ -161,7 +161,7 @@ FIntPoint AMazeObstacleManager::GetBestSpillCell() const
     }
 
     const int32 RandomIndex =
-        FMath::RandRange(
+        RandomStream.RandRange(
             0,
             BestCells.Num() - 1);
 
@@ -207,7 +207,7 @@ void AMazeObstacleManager::SpawnDistractions()
         OccupiedCells.Add(Cell);
 
         int32 RandomIndex =
-            FMath::RandRange(
+            RandomStream.RandRange(
                 0,
                 DistractionClasses.Num() - 1);
 
@@ -220,14 +220,19 @@ void AMazeObstacleManager::SpawnDistractions()
                 Cell.Y);
 
         SpawnLocation.Z += ObstacleHeightOffset;
-
+        
+        //check :0000
+        UE_LOG(LogTemp, Warning,
+    TEXT("Spawn Location = %s"),
+    *SpawnLocation.ToString());
+        
         AObstacleBase* Spawned =
             GetWorld()->SpawnActor<AObstacleBase>(
                 ClassToSpawn,
                 SpawnLocation,
                 FRotator(
                     0.f,
-                    FMath::RandRange(0.f, 360.f),
+                    RandomStream.RandRange(0.f, 360.f),
                     0.f));
 
         if (Spawned)
@@ -265,7 +270,7 @@ void AMazeObstacleManager::SpawnSpills()
         OccupiedCells.Add(Cell);
 
         int32 RandomIndex =
-            FMath::RandRange(
+            RandomStream.RandRange(
                 0,
                 SpillClasses.Num() - 1);
 
@@ -291,8 +296,8 @@ void AMazeObstacleManager::SpawnSpills()
             continue;
         }
 
-        const bool bMud = FMath::RandBool();
-
+        const bool bMud = RandomStream.RandRange(0, 1) == 0;
+        
         Spawned->AssignSpillType(
             bMud,
             MudMaterial,
@@ -336,12 +341,22 @@ void AMazeObstacleManager::SpawnSpills()
         NumberOfSpills);
 }
 
-void AMazeObstacleManager::SpawnObstacles()
+void AMazeObstacleManager::SpawnObstacles(int32 Seed)
 {
     UE_LOG(
         LogTemp,
         Warning,
-        TEXT("SpawnObstacles() called"));
+        TEXT("SpawnObstacles() called with Seed %d"),
+        Seed);
+    
+    UE_LOG(
+    LogTemp,
+    Warning,
+    TEXT("Distractions=%d Spills=%d"),
+    NumberOfDistractions,
+    NumberOfSpills);
+
+    RandomStream.Initialize(Seed);
 
     for (AActor* Obstacle : SpawnedObstacles)
     {

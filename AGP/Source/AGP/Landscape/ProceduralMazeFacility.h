@@ -66,11 +66,12 @@ public:
     UFUNCTION(BlueprintCallable, Category="Maze")
     void GenerateMaze();
 
+   //not sure if bshouldregenerate works anymore, ill fix it up later if needed
     UPROPERTY(EditAnywhere)
     bool bShouldRegenerate = false;
 
     UFUNCTION(BlueprintCallable, Category="Maze")
-    void RequestRegenerate()
+    void RequestRegenerateMaze()
     {
         bShouldRegenerate = true;
     }
@@ -84,6 +85,13 @@ private:
     void GenerateFloorGrid();
     void InitializeMazeCells();
     void GenerateWallMeshes();
+    
+    FRandomStream RandomStream;
+
+    void GenerateMazeFromSeed(int32 Seed);
+
+    int32 CurrentSeed = 0;
+
 
     
 public: // for obstacles!
@@ -124,4 +132,12 @@ public: // for obstacles!
     
     UPROPERTY(EditAnywhere, Category = "Maze")
     AMazeObstacleManager* ObstacleManager;
+    
+    //multicast to all machines
+    UFUNCTION(NetMulticast, Reliable)
+    void MulticastRegenerateMaze(
+        int32 Seed,
+        int32 InSpills,
+        int32 InDistractions);
+
 };

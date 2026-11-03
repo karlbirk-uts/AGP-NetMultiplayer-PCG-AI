@@ -41,7 +41,7 @@ public:
 	TArray<TSubclassOf<AObstacleBase>> SpillClasses;
 
 	UFUNCTION(BlueprintCallable)
-	void SpawnObstacles();
+	void SpawnObstacles(int32 Seed);
 	
 	UPROPERTY(EditAnywhere, Category = "Spills")
 	UMaterialInterface* MudMaterial;
@@ -69,4 +69,8 @@ protected:
 	TArray<FIntPoint> SpillCells;
 
 	bool IsMazeStillReachable() const;
+	
+private:
+
+	FRandomStream RandomStream;
 };
