@@ -1,14 +1,12 @@
 #pragma once
 
-#include "Components/SceneComponent.h"
-#include "Components/StaticMeshComponent.h"
-
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "ObstacleBase.generated.h"
 
 class USceneComponent;
 class UStaticMeshComponent;
+class UMaterialInterface;
 
 UENUM(BlueprintType)
 enum class EObstacleType : uint8
@@ -39,6 +37,39 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Obstacle")
 	EObstacleType ObstacleType;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Spill")
+	bool bIsMud = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Spill")
+	bool bIsSlime = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Spill")
+	bool bIsPassable = false;
+
+	UFUNCTION(BlueprintCallable, Category = "Spill")
+	void AssignSpillType(
+		bool bMud,
+		UMaterialInterface* MudMaterial,
+		UMaterialInterface* SlimeMaterial);
+
+	UFUNCTION(BlueprintPure, Category = "Spill")
+	bool IsPassable() const
+	{
+		return bIsPassable;
+	}
+
+	UFUNCTION(BlueprintPure, Category = "Spill")
+	bool IsMud() const
+	{
+		return bIsMud;
+	}
+
+	UFUNCTION(BlueprintPure, Category = "Spill")
+	bool IsSlime() const
+	{
+		return bIsSlime;
+	}
 
 	UFUNCTION(BlueprintPure, Category = "Obstacle")
 	UStaticMeshComponent* GetMesh() const

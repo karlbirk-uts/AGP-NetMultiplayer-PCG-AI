@@ -28,10 +28,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Landscape")
 	float VertexSpacing = 500.0f;
 
-	UPROPERTY(EditAnywhere, Category="Landscape")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Landscape")
 	float PerlinScale = 1000.0f;
 
-	UPROPERTY(EditAnywhere, Category="Landscape")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Landscape")
 	float PerlinRoughness = 0.00012f;
 
 	UPROPERTY(EditAnywhere, Category="Landscape")

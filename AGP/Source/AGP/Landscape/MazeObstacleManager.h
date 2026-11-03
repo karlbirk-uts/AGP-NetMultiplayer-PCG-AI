@@ -6,6 +6,7 @@
 
 class AProceduralMazeFacility;
 class AObstacleBase;
+class UMaterialInterface;
 
 UCLASS()
 class AGP_API AMazeObstacleManager : public AActor
@@ -24,10 +25,10 @@ public:
 	UPROPERTY(EditAnywhere, Category="Maze")
 	AProceduralMazeFacility* MazeReference;
 
-	UPROPERTY(EditAnywhere, Category="Obstacles")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Obstacles")
 	int32 NumberOfDistractions = 3;
 
-	UPROPERTY(EditAnywhere, Category="Obstacles")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Obstacles")
 	int32 NumberOfSpills = 5;
 
 	UPROPERTY(EditAnywhere, Category="Obstacles")
@@ -41,23 +42,31 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SpawnObstacles();
+	
+	UPROPERTY(EditAnywhere, Category = "Spills")
+	UMaterialInterface* MudMaterial;
+
+	UPROPERTY(EditAnywhere, Category = "Spills")
+	UMaterialInterface* SlimeMaterial;
 
 protected:
-
 	void SpawnDistractions();
-
 	void SpawnSpills();
 
 	FIntPoint GetRandomFreeCell();
+
+	FIntPoint GetBestSpillCell() const;
+	int32 GetNearestSpillDistance(
+		const FIntPoint& Candidate) const;
 
 	TSet<FIntPoint> OccupiedCells;
 
 	UPROPERTY()
 	TArray<AActor*> SpawnedObstacles;
-    
 
-    
 	TSet<FIntPoint> BlockedCells;
-    
+
+	TArray<FIntPoint> SpillCells;
+
 	bool IsMazeStillReachable() const;
 };
