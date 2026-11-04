@@ -30,7 +30,7 @@ void AEnemyCharacter::BeginPlay()
 	PathfindingSubsystem = GetWorld()->GetSubsystem<UPathfindingSubsystem>();
 	if (PathfindingSubsystem)
 	{
-		CurrentPath = PathfindingSubsystem->GetRandomPath(GetActorLocation());
+		CurrentNodesPath = PathfindingSubsystem->GetRandomPath(GetActorLocation());
 	}
 	
 	if (AIPerceptionComponent)
@@ -42,11 +42,11 @@ void AEnemyCharacter::BeginPlay()
 
 void AEnemyCharacter::TickPatrol()
 {
-	if (CurrentPath.IsEmpty())
+	if (CurrentNodesPath.IsEmpty())
 	{
 		if (PathfindingSubsystem)
 		{
-			CurrentPath = PathfindingSubsystem->GetRandomPath(GetActorLocation());
+			CurrentNodesPath = PathfindingSubsystem->GetRandomPath(GetActorLocation());
 		}
 	}
 	MoveAlongPath();
@@ -54,12 +54,12 @@ void AEnemyCharacter::TickPatrol()
 
 void AEnemyCharacter::TickEngage()
 {
-	if (CurrentPath.IsEmpty())
+	if (CurrentNodesPath.IsEmpty())
 	{
 		if (PathfindingSubsystem && SensedPlayer)
 		{
-			// CurrentPath = PathfindingSubsystem->GetPath(GetActorLocation(),SensedCharacter->GetActorLocation());
-			CurrentPath = PathfindingSubsystem->GetPath(GetActorLocation(),TargetLocation);
+			// CurrentNodesPath = PathfindingSubsystem->GetPath(GetActorLocation(),SensedCharacter->GetActorLocation());
+			CurrentNodesPath = PathfindingSubsystem->GetPath(GetActorLocation(),TargetLocation);
 		}
 	}
 	MoveAlongPath();
@@ -79,11 +79,11 @@ void AEnemyCharacter::TickEngage()
 
 void AEnemyCharacter::TickEvade()
 {
-	if (CurrentPath.IsEmpty())
+	if (CurrentNodesPath.IsEmpty())
 	{
 		if (PathfindingSubsystem && SensedPlayer)
 		{
-			CurrentPath = PathfindingSubsystem->GetPathAway(GetActorLocation(),TargetLocation);
+			CurrentNodesPath = PathfindingSubsystem->GetPathAway(GetActorLocation(),TargetLocation);
 		}
 	}
 	MoveAlongPath();
@@ -91,16 +91,16 @@ void AEnemyCharacter::TickEvade()
 
 void AEnemyCharacter::MoveAlongPath()
 {
-	if (CurrentPath.IsEmpty()) return;
+	if (CurrentNodesPath.IsEmpty()) return;
 	
-	FVector NextLocation = CurrentPath[0];
+	FVector NextLocation = CurrentNodesPath[0];
 	FVector Direction = NextLocation - GetActorLocation();
 	Direction.Normalize();
 	AddMovementInput(Direction,1);
 	
 	if (FVector::DistSquared(NextLocation,GetActorLocation()) <= PathingLocationThreshold*PathingLocationThreshold)
 	{
-		CurrentPath.RemoveAt(0);
+		CurrentNodesPath.RemoveAt(0);
 	}
 	
 }
@@ -186,12 +186,12 @@ void AEnemyCharacter::Tick(float DeltaTime)
 		{
 			if (HealthComponent->GetCurrentHealthPercentage()>=EvadeHealthPercentageThreshold)
 			{
-				CurrentPath.Empty();
+				CurrentNodesPath.Empty();
 				CurrentState = EEnemyState::Engage;
 				TickEngage();
 				break;
 			}
-			CurrentPath.Empty();
+			CurrentNodesPath.Empty();
 			CurrentState = EEnemyState::Evade;
 			TickEvade();
 			break;
@@ -208,7 +208,7 @@ void AEnemyCharacter::Tick(float DeltaTime)
 		}
 		if (HealthComponent->GetCurrentHealthPercentage()<EvadeHealthPercentageThreshold)
 		{
-			CurrentPath.Empty();
+			CurrentNodesPath.Empty();
 			CurrentState = EEnemyState::Evade;
 			TickEvade();
 			break;
@@ -225,7 +225,7 @@ void AEnemyCharacter::Tick(float DeltaTime)
 		}
 		if (HealthComponent->GetCurrentHealthPercentage()>=EvadeHealthPercentageThreshold)
 		{
-			CurrentPath.Empty();
+			CurrentNodesPath.Empty();
 			CurrentState = EEnemyState::Engage;
 			TickEngage();
 			break;

@@ -38,7 +38,7 @@ protected:
 	UPathfindingSubsystem* PathfindingSubsystem;
 	
 	UPROPERTY(VisibleAnywhere)
-	TArray<FVector> CurrentPath;
+	TArray<FVector> CurrentNodesPath;
 	
 	UPROPERTY(EditDefaultsOnly)
 	float PathingLocationThreshold;

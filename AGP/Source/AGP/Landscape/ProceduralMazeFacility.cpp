@@ -112,75 +112,21 @@ void AProceduralMazeFacility::GenerateFloorGrid()
 		MazeMesh->SetMaterial(0, FloorMaterial);
 
 
-	// TESTING pathfinding NavNodes emplacement
-	// this one spawns inside the walls
-	if (UPathfindingSubsystem* PathfindingSubsystem = GetWorld()->GetSubsystem<UPathfindingSubsystem>())
-	{
-	    UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility UPathfindingSubsystem new nodes"));
-	    PathfindingSubsystem->
-	        MazePCGPlaceProceduralNodes(
-	            Vertices,
-	            MazeWidth,
-	            MazeHeight,
-	            this);
-	}
-	else
-	{
-	    UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility couldn't see UPathfindingSubsystem"));
-	}
-	
-
-	// Spawning navnodes in between walls ground vertices
-	// TArray<FVector> CentredNavNodes;
-	// CentredNavNodes.Reserve((MazeWidth - 1) * (MazeHeight - 1));
-	//
-	// for (int32 i = 0; i < MazeHeight - 1; i++)
-	// {
-	// 	for (int32 j = 0; j < MazeWidth - 1; j++)
-	// 	{
-	// 		int32 SW = i * MazeWidth + j;
-	// 		int32 SE = SW + 1;
-	// 		int32 NW = (i + 1) * MazeWidth + j;
-	// 		int32 NE = NW + 1;
-	//
-	// 		// Middle
-	// 		FVector CenterPos =
-	// 			(Vertices[SW] +
-	// 				Vertices[SE] +
-	// 				Vertices[NW] +
-	// 				Vertices[NE])
-	// 			* 0.25f;
-	//
-	// 		CentredNavNodes.Add(CenterPos);
-	// 	}
-	// }
-	
-
-	// UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility GenerateFloorGrid Vertices.Num(): %d"), Vertices.Num());
-	// UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility GenerateFloorGrid CentredNavNodes.Num(): %d"), CentredNavNodes.Num());
-
-	
-	// TESTING Centred+Vertices
-	// TArray<FVector> CentredAndVerticesNavNodes;
-	// CentredAndVerticesNavNodes.Reserve(Vertices.Num()+CentredNavNodes.Num());
-	//
-	//
-	//
-	// CentredAndVerticesNavNodes.Append(Vertices);
-	// CentredAndVerticesNavNodes.Append(CentredNavNodes);
-	//
+	// // TESTING pathfinding NavNodes emplacement
+	// // this one spawns inside the walls
 	// if (UPathfindingSubsystem* PathfindingSubsystem = GetWorld()->GetSubsystem<UPathfindingSubsystem>())
 	// {
-	// 	PathfindingSubsystem->PlaceProceduralNodes(
-	// 		CentredNavNodes,
-	// 		MazeWidth - 1,
-	// 		MazeHeight - 1,
-	// 		this
-	// 	);
+	//     UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility UPathfindingSubsystem new nodes"));
+	//     PathfindingSubsystem->
+	//         MazePCGPlaceProceduralNodes(
+	//             Vertices,
+	//             MazeWidth,
+	//             MazeHeight,
+	//             this);
 	// }
 	// else
 	// {
-	// 	UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility couldn't see UPathfindingSubsystem"));
+	//     UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility couldn't see UPathfindingSubsystem"));
 	// }
 }
 
@@ -229,6 +175,15 @@ void AProceduralMazeFacility::GenerateMaze()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("no obstacle manager"));
 	}
+	
+
+
+
+	
+	// Custom pathfinding NavNodes emplacement
+	SpawnNavNodesAndPathing();
+
+	
 }
 
 void AProceduralMazeFacility::ClearMaze()
@@ -383,19 +338,46 @@ void AProceduralMazeFacility::GenerateWallMeshes()
 		WallMesh->SetMaterial(0, WallMaterial);
 
 
-	// if (UPathfindingSubsystem* PathfindingSubsystem = GetWorld()->GetSubsystem<UPathfindingSubsystem>())
-	// {
-	//     PathfindingSubsystem->
-	//         PlaceProceduralNodes(
-	//             Vertices,
-	//             MazeWidth,
-	//             MazeHeight,
-	//             this);
-	// }
-	// else
-	// {
-	//     UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility couldn't see UPathfindingSubsystem"));
-	// }
+
+}
+
+// Custom pathfinding NavNodes emplacement
+void AProceduralMazeFacility::SpawnNavNodesAndPathing()
+{
+	TArray<FVector> CellVertices;
+	
+	for (int32 Y = 0; Y < CellsHeight; Y++)
+	{
+		for (int32 X = 0; X < CellsWidth; X++)
+		{
+
+			CellVertices.Add(GetCellWorldPosition(X,Y));
+		}
+	}
+
+	FVector MazeStartPosition = GetCellWorldPosition(StartCellX, StartCellY);
+	FVector MazeEndPosition = GetCellWorldPosition(EndCellY, EndCellX);
+
+	
+	if (UPathfindingSubsystem* PathfindingSubsystem = GetWorld()->GetSubsystem<UPathfindingSubsystem>())
+	{
+	    UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility UPathfindingSubsystem new nodes"));
+	    PathfindingSubsystem->
+	        MazePCGPlaceProceduralNodes(
+	            CellVertices,
+	            CellsWidth,
+	            CellsHeight,
+	            this,
+	            MazeCells,
+	            MazeStartPosition,
+	            MazeEndPosition
+	            );
+	}
+	else
+	{
+	    UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility couldn't see UPathfindingSubsystem"));
+	}
+	
 }
 
 FVector AProceduralMazeFacility::GetCellWorldPosition(int32 CellX, int32 CellY) const

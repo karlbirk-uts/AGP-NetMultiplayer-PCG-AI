@@ -85,6 +85,7 @@ private:
     void InitializeMazeCells();
     void GenerateWallMeshes();
 
+    void SpawnNavNodesAndPathing();
     
 public: // for obstacles!
 

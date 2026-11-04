@@ -1,6 +1,7 @@
 #include "PathfindingSubsystem.h"
 #include "NavigationNode.h"
 #include "EngineUtils.h"
+#include "AGP/Landscape/ProceduralMazeFacility.h"
 #include "Algo/Reverse.h"
 
 USTRUCT()
@@ -29,10 +30,12 @@ TArray<FVector> UPathfindingSubsystem::GetRandomPath(const FVector& StartLocatio
 	return GetPath(FindNearestNode(StartLocation), GetRandomNode());
 }
 
+
 TArray<FVector> UPathfindingSubsystem::GetPath(const FVector& StartLocation, const FVector& TargetLocation)
 {
 	return GetPath(FindNearestNode(StartLocation), FindNearestNode(TargetLocation));
 }
+
 
 TArray<FVector> UPathfindingSubsystem::GetPathAway(const FVector& StartLocation, const FVector& TargetLocation)
 {
@@ -49,16 +52,17 @@ void UPathfindingSubsystem::PlaceProceduralNodes(
 	RemoveAllNodes();
 
 
-
-
-
 	// SPAWN NODES; ADD TO NavNodes array.
 	for (int i = 0; i < Width; ++i)
 	{
 		for (int j = 0; j < Height; ++j)
 		{
 			FVector Position = Vertices[i + j * Width];
-			if (ANavigationNode* Node = GetWorld()->SpawnActor<ANavigationNode>(Position, FRotator::ZeroRotator))
+			if (ANavigationNode* Node =
+				GetWorld()->
+				SpawnActor<ANavigationNode>(
+					Position,
+					FRotator::ZeroRotator))
 			{
 				NavNodes.Add(Node);
 
@@ -354,65 +358,42 @@ TArray<FVector> UPathfindingSubsystem::ReconstructPath(TMap<ANavigationNode*, FA
 
 
 void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
-	const TArray<FVector>& VerticalWallsVertices,
-	const int32 Width,
-	const int32 Height,
-	AActor* ParentActor)
+	const TArray<FVector>& CellVertices,
+	const int32 CellsWidth,
+	const int32 CellsHeight,
+	AActor* ParentActor,
+	const TArray<TArray<FMazeCell>>& MazeCells,
+	const FVector& MazeStartPosition,
+	const FVector& MazeEndPosition)
 {
 	// Clear existing tracking arrays
 	RemoveAllNodes();
 
-	
-	// VerticalWallsVertices are locations of impassable walls
-	// CentredNavNodeVertices are for pathways
-	
-	
-	// Calculate centred NavNode positions
-	TArray<FVector> CentredNavNodeVertices;
-	const int32 CentreWidth = Width - 1;
-	const int32 CentreHeight = Height - 1;
-	CentredNavNodeVertices.Reserve(CentreWidth * CentreHeight);
+	// Starting positions for NPCs later
+	MazePCGStartNodePosition = MazeStartPosition;
+	MazePCGEndNodePosition = MazeEndPosition;
 
-	for (int32 i = 0; i < CentreHeight; i++)
+
+	// Spawning nodes
+	for (int32 row = 0; row < CellsWidth; ++row)
 	{
-		for (int32 j = 0; j < CentreWidth; j++)
+		for (int32 column = 0; column < CellsHeight; ++column)
 		{
-			int32 SW = i * Width + j;
-			int32 SE = SW + 1;
-			int32 NW = (i + 1) * Width + j;
-			int32 NE = NW + 1;
+			int32 Index = row + (column * CellsWidth);
 
-			FVector CenterPos =
-				(
-					VerticalWallsVertices[SW] +
-					VerticalWallsVertices[SE] +
-					VerticalWallsVertices[NW] +
-					VerticalWallsVertices[NE])
-				* 0.25f;
-			CentredNavNodeVertices.Add(CenterPos);
-		}
-	}
-	
-
-	
-	
-	
-	// Spawn VerticalWallsVertices Nodes
-	TArray<ANavigationNode*> VertexNodes;
-	VertexNodes.SetNumZeroed(Width * Height);
-
-	for (int32 j = 0; j < Height; ++j)
-	{
-		for (int32 i = 0; i < Width; ++i)
-		{
-			int32 FlatIndex = i + j * Width;
-
-			FVector Position = VerticalWallsVertices[i + j * Width];
-
-			if (ANavigationNode* Node = GetWorld()->SpawnActor<ANavigationNode>(Position, FRotator::ZeroRotator))
+			if (!CellVertices.IsValidIndex(Index))
 			{
+				continue;
+			}
 
-				VertexNodes[FlatIndex] = Node;
+			FVector Position = CellVertices[Index];
+
+			if (ANavigationNode* Node =
+				GetWorld()->
+				SpawnActor<ANavigationNode>(
+					Position,
+					FRotator::ZeroRotator))
+			{
 				NavNodes.Add(Node);
 
 				// Attach to supplied parent actor to nest nodes to mesh and keep them self-contained.
@@ -423,156 +404,74 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 			}
 			else
 			{
-				UE_LOG(LogTemp, Error, TEXT("PathfindingSubsystem MazePCGPlaceProceduralNodes Unable to spawn a node for some reason. This is bad! VertexNodes[%d]."), FlatIndex)
+				// Unable to spawn a node. ZheGeBuHao.
+				UE_LOG(LogTemp, Error,
+				       TEXT("UPathfindingSubsystem::MazePCGPlaceProceduralNodes Failed to spawn NavNode"));
 			}
 		}
 	}
 
-	// Spawn CentredNavNodeVertices NavNodes
-	TArray<ANavigationNode*> CentreNodes;
-	CentreNodes.SetNumZeroed(CentreWidth * CentreHeight);
 
-	for (int32 j = 0; j < CentreHeight; ++j)
+	// Connect nodes to neighbours, NESW, where MazeCells walls can prevent connections
+	for (int row = 0; row < CellsWidth; ++row)
 	{
-		for (int32 i = 0; i < CentreWidth; ++i)
+		for (int column = 0; column < CellsHeight; ++column)
 		{
-			// Flat index
-			int32 FlatIndex = i + j * CentreWidth;
-			FVector Position = CentredNavNodeVertices[FlatIndex];
-			
-			if (ANavigationNode* Node = GetWorld()->SpawnActor<ANavigationNode>(Position, FRotator::ZeroRotator))
-			{
-				NavNodes.Add(Node);
-				// CentreNodes.Add(Node);
-				CentreNodes[FlatIndex] = Node;
-					
-				// Attach to supplied parent actor to nest nodes to mesh and keep them self-contained.
-				if (ParentActor)
-				{
-					Node->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform);
-				}
-			}
-			else
-			{
-				UE_LOG(LogTemp, Error, TEXT("PathfindingSubsystem MazePCGPlaceProceduralNodes Unable to spawn a node for some reason. This is bad! CentreNode[%d]."), FlatIndex)
-			}
-		}
-	}
+			int32 Index = row + (column * CellsWidth);
 
-	// 5. Connect Vertex Nodes to their structural Vertex neighbours (8-way grid)
-	for (int32 j = 0; j < Height; ++j)
-	{
-		for (int32 i = 0; i < Width; ++i)
-		{
-			ANavigationNode* CurrentNode = VertexNodes[i + j * Width];
+			if (!CellVertices.IsValidIndex(Index)) continue;
+
+			ANavigationNode* CurrentNode = NavNodes[Index];
+
 			if (!CurrentNode) continue;
 
-			const bool bAddLeft = i < Width - 1;
-			const bool bAddRight = i > 0;
-			const bool bAddUp = j < Height - 1;
-			const bool bAddDown = j > 0;
+			bool bIsWallNorth = MazeCells[column][row].WallNorth;
+			bool bIsWallEast = MazeCells[column][row].WallEast;
+			bool bIsWallSouth = MazeCells[column][row].WallSouth;
+			bool bIsWallWest = MazeCells[column][row].WallWest;
 
-			if (bAddUp) CurrentNode->AddConnectedNode(VertexNodes[i + (j + 1) * Width]);
-			if (bAddDown) CurrentNode->AddConnectedNode(VertexNodes[i + (j - 1) * Width]);
-			if (bAddLeft) CurrentNode->AddConnectedNode(VertexNodes[(i + 1) + j * Width]);
-			if (bAddRight) CurrentNode->AddConnectedNode(VertexNodes[(i - 1) + j * Width]);
-			if (bAddUp && bAddRight) CurrentNode->AddConnectedNode(VertexNodes[(i - 1) + (j + 1) * Width]);
-			if (bAddUp && bAddLeft) CurrentNode->AddConnectedNode(VertexNodes[(i + 1) + (j + 1) * Width]);
-			if (bAddDown && bAddRight) CurrentNode->AddConnectedNode(VertexNodes[(i - 1) + (j - 1) * Width]);
-			if (bAddDown && bAddLeft) CurrentNode->AddConnectedNode(VertexNodes[(i + 1) + (j - 1) * Width]);
-		}
-	}
-
-	// 6. Cross-Connect Centre Nodes to their 4 surrounding Corner Nodes
-	// for (int32 j = 0; j < CentreHeight; ++j)
-	// {
-	// 	for (int32 i = 0; i < CentreWidth; ++i)
-	// 	{
-	// 		ANavigationNode* CenterNode = CentreNodes[i + j * CentreWidth];
-	// 		if (!CenterNode) continue;
-	//
-	// 		// Map centre cell index to its 4 corner vertex coordinates
-	// 		int32 SW_Idx = i + j * Width;
-	// 		int32 SE_Idx = (i + 1) + j * Width;
-	// 		int32 NW_Idx = i + (j + 1) * Width;
-	// 		int32 NE_Idx = (i + 1) + (j + 1) * Width;
-	//
-	// 		// Connect centre node outward to corners, and corners back inward to centre
-	// 		if (ANavigationNode* SW = VertexNodes[SW_Idx])
-	// 		{
-	// 			CenterNode->AddConnectedNode(SW);
-	// 			SW->AddConnectedNode(CenterNode);
-	// 		}
-	// 		if (ANavigationNode* SE = VertexNodes[SE_Idx])
-	// 		{
-	// 			CenterNode->AddConnectedNode(SE);
-	// 			SE->AddConnectedNode(CenterNode);
-	// 		}
-	// 		if (ANavigationNode* NW = VertexNodes[NW_Idx])
-	// 		{
-	// 			CenterNode->AddConnectedNode(NW);
-	// 			NW->AddConnectedNode(CenterNode);
-	// 		}
-	// 		if (ANavigationNode* NE = VertexNodes[NE_Idx])
-	// 		{
-	// 			CenterNode->AddConnectedNode(NE);
-	// 			NE->AddConnectedNode(CenterNode);
-	// 		}
-	// 	}
-	// }
-	
-	
-	
-	// Connect Centre-Nodes to Centre-Node neighbours, NESW
-	for (int i = 0; i < CentreHeight; ++i)
-	{
-		for (int j = 0; j < CentreWidth; ++j)
-		{
-			ANavigationNode* CurrentNode = CentreNodes[i + j * CentreWidth];
-
-			if (!CurrentNode) continue;
 
 			// conditions for valid neighbours.
-			const bool bAddLeft = i < CentreWidth - 1;
-			const bool bAddRight = i > 0;
-			const bool bAddUp = j < CentreHeight - 1;
-			const bool bAddDown = j > 0;
+			const bool bAddEast = row < CellsWidth - 1;
+			const bool bAddWest = row > 0;
+			const bool bAddNorth = column < CellsHeight - 1;
+			const bool bAddSouth = column > 0;
 
-			if (bAddUp)
+			if (bAddEast && !bIsWallEast)
 			{
-				CurrentNode->AddConnectedNode(CentreNodes[i + (j + 1) * CentreWidth]);
+				int32 NeighbourIndex = (row + 1) + (column * CellsWidth);
+				if (NavNodes.IsValidIndex(NeighbourIndex))
+				{
+					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+				}
 			}
-			if (bAddDown)
+			
+			if (bAddWest && !bIsWallWest) 
 			{
-				CurrentNode->AddConnectedNode(CentreNodes[i + (j - 1) * CentreWidth]);
+				int32 NeighbourIndex = (row - 1) + (column * CellsWidth);
+				if (NavNodes.IsValidIndex(NeighbourIndex))
+				{
+					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+				}
 			}
-			if (bAddLeft)
+
+			if (bAddNorth && !bIsWallNorth) 
 			{
-				CurrentNode->AddConnectedNode(CentreNodes[(i + 1) + j * CentreWidth]);
+				int32 NeighbourIndex = row + ((column + 1) * CellsWidth);
+				if (NavNodes.IsValidIndex(NeighbourIndex))
+				{
+					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+				}
 			}
-			if (bAddRight)
+			if (bAddSouth && !bIsWallSouth) 
 			{
-				CurrentNode->AddConnectedNode(CentreNodes[(i - 1) + j * CentreWidth]);
+				int32 NeighbourIndex = row + ((column - 1) * CellsWidth);
+				if (NavNodes.IsValidIndex(NeighbourIndex))
+				{
+					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+				}
 			}
-			// if (bAddUp && bAddRight)
-			// {
-			// 	CurrentNode->AddConnectedNode(CentreNodes[(i - 1) + (j + 1) * CentreWidth]);
-			// }
-			// if (bAddUp && bAddLeft)
-			// {
-			// 	CurrentNode->AddConnectedNode(CentreNodes[(i + 1) + (j + 1) * CentreWidth]);
-			// }
-			// if (bAddDown && bAddRight)
-			// {
-			// 	CurrentNode->AddConnectedNode(CentreNodes[(i - 1) + (j - 1) * CentreWidth]);
-			// }
-			// if (bAddDown && bAddLeft)
-			// {
-			// 	CurrentNode->AddConnectedNode(CentreNodes[(i + 1) + (j - 1) * CentreWidth]);
-			// }
+
 		}
 	}
-	
 }
-
-
