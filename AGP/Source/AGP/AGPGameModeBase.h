@@ -6,8 +6,11 @@
 #include "GameFramework/GameModeBase.h"
 #include "AGPGameModeBase.generated.h"
 
+class AProceduralMazeFacility;
+class APCGTerrainLandscape;
+
 /**
- * 
+ * ALL CODE HAS BEEN COPIED TO MULTIPLAYERGAMEMODE :)
  */
 UCLASS()
 class AGP_API AAGPGameModeBase : public AGameModeBase
@@ -17,10 +20,18 @@ class AGP_API AAGPGameModeBase : public AGameModeBase
 protected:
 	virtual void BeginPlay() override;
 
-	
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
-	TSubclassOf<UUserWidget> ProceduralWidgetClass;
+	UFUNCTION(BlueprintCallable)
+	void GenerateMazeOnly();
+
+	UFUNCTION(BlueprintCallable)
+	void GenerateTerrainOnly();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Generation")
+	AProceduralMazeFacility* MazeReference;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Generation")
+	APCGTerrainLandscape* LandscapeReference;
 
 	
 };

@@ -17,6 +17,8 @@ AProceduralMazeFacility::AProceduralMazeFacility()
     
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.bStartWithTickEnabled = true;
+    
+    bReplicates = true;
 }
 
 void AProceduralMazeFacility::BeginPlay()
@@ -145,7 +147,7 @@ void AProceduralMazeFacility::GenerateMaze()
     if (ObstacleManager)
     {
         UE_LOG(LogTemp, Warning, TEXT("obstacle manager exists"));
-        ObstacleManager->SpawnObstacles();
+        ObstacleManager->SpawnObstacles(CurrentSeed);
     } else
     {
         UE_LOG(LogTemp, Warning, TEXT("no obstacle manager"));
@@ -185,7 +187,7 @@ void AProceduralMazeFacility::CarveFrom(int32 CellX, int32 CellY)
 
     for (int32 i = 0; i < Directions.Num(); i++)
     {
-        int32 SwapIndex = FMath::RandRange(0, Directions.Num() - 1);
+        int32 SwapIndex = RandomStream.RandRange(0, Directions.Num() - 1);
         Directions.Swap(i, SwapIndex);
     }
 
@@ -311,4 +313,33 @@ FVector AProceduralMazeFacility::GetCellWorldPosition(int32 CellX, int32 CellY) 
         (CellY + 0.5f) * CellSize,
         0.0f
     );
+}
+
+
+void AProceduralMazeFacility::MulticastRegenerateMaze_Implementation(
+    int32 Seed,
+    int32 InSpills,
+    int32 InDistractions)
+{
+    if (ObstacleManager)
+    {
+        ObstacleManager->NumberOfSpills =
+            InSpills;
+
+        ObstacleManager->NumberOfDistractions =
+            InDistractions;
+    }
+
+    GenerateMazeFromSeed(Seed);
+}
+
+void AProceduralMazeFacility::GenerateMazeFromSeed(
+    int32 Seed)
+{
+    CurrentSeed = Seed;
+
+    RandomStream.Initialize(Seed);
+
+    ClearMaze();
+    GenerateMaze();
 }

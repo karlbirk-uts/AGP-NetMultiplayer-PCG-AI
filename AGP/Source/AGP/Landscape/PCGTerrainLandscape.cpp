@@ -10,6 +10,8 @@ APCGTerrainLandscape::APCGTerrainLandscape()
 
     ProceduralMesh = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("ProceduralMesh"));
     SetRootComponent(ProceduralMesh);
+    
+    bReplicates = true;
 }
 
 void APCGTerrainLandscape::BeginPlay()
@@ -82,7 +84,13 @@ void APCGTerrainLandscape::GenerateTerrain(float XOffset, int32 SectionIndex, fl
     TerrainHeights.Empty();   // reset height storage
     TerrainHeights.Reserve(Width * Height);
 
-    OutPerlinOffset = FMath::RandRange(-1000000.0f, 1000000.0f);
+    OutPerlinOffset = RandomStream.FRandRange(-1000000.0f, 1000000.0f);
+    //check, del later
+    UE_LOG(
+    LogTemp,
+    Warning,
+    TEXT("Perlin Offset = %f"),
+    OutPerlinOffset);
 
     for (int32 Y = 0; Y < Height; Y++)
     {
@@ -311,4 +319,30 @@ void APCGTerrainLandscape::GenerateFence(float XOffset, int32 SectionIndex, floa
 
     if (FenceMaterial)
         ProceduralMesh->SetMaterial(SectionIndex, FenceMaterial);
+}
+
+void APCGTerrainLandscape::MulticastRegenerateTerrain_Implementation(
+    int32 Seed,
+    float NewPerlinScale,
+    float NewPerlinRoughness)
+{
+    PerlinScale = NewPerlinScale;
+    PerlinRoughness = NewPerlinRoughness;
+
+    GenerateTerrainFromSeed(Seed);
+}
+
+void APCGTerrainLandscape::GenerateTerrainFromSeed(
+    int32 Seed)
+{
+    UE_LOG(LogTemp, Warning,
+        TEXT("Generating Terrain From Seed: %d"),
+        Seed);
+
+    CurrentSeed = Seed;
+
+    RandomStream.Initialize(Seed);
+
+    ClearLandscape();
+    GenerateLandscape();
 }

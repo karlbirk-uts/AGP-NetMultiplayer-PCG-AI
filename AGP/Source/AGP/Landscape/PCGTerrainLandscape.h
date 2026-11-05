@@ -29,12 +29,6 @@ protected:
 	float VertexSpacing = 500.0f;
 
 	UPROPERTY(EditAnywhere, Category="Landscape")
-	float PerlinScale = 1000.0f;
-
-	UPROPERTY(EditAnywhere, Category="Landscape")
-	float PerlinRoughness = 0.00012f;
-
-	UPROPERTY(EditAnywhere, Category="Landscape")
 	bool bShouldRegenerate = false;
 
 	UPROPERTY(EditAnywhere, Category="Fence")
@@ -59,9 +53,31 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Procedural Landscape")
 	void GenerateLandscape();
 
+	//not sure if bshouldregenerate works anymore, ill fix it up later if needed
 	UFUNCTION(BlueprintCallable, Category="Procedural Landscape")
-	void RequestRegenerate()
+	void RequestRegenerateTerrain()
 	{
 		bShouldRegenerate = true;
 	}
+	
+	//for replication across machines
+	UFUNCTION(NetMulticast, Reliable)
+    void MulticastRegenerateTerrain(
+        int32 Seed,
+        float NewPerlinScale,
+        float NewPerlinRoughness);
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Landscape")
+	float PerlinScale = 1000.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Landscape")
+	float PerlinRoughness = 0.00012f;
+	
+private: //seeding for multicast
+
+	FRandomStream RandomStream;
+
+	int32 CurrentSeed = 0;
+
+	void GenerateTerrainFromSeed(int32 Seed);
 };

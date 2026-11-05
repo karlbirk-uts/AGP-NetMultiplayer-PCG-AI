@@ -6,6 +6,9 @@
 #include "GameFramework/GameMode.h"
 #include "MultiplayerGameMode.generated.h"
 
+class AProceduralMazeFacility;
+class APCGTerrainLandscape;
+
 /**
  * 
  */
@@ -17,4 +20,21 @@ class AGP_API AMultiplayerGameMode : public AGameMode
 	public:
 	void RespawnPlayer(AController* Controller);
 	
+/*-----UNCOMMENT IF USING MULTIPLAYERGAMEMODE FOR PCG
+protected:
+	virtual void BeginPlay() override;
+
+public:
+	UFUNCTION(BlueprintCallable)
+	void GenerateMazeOnly();
+
+	UFUNCTION(BlueprintCallable)
+	void GenerateTerrainOnly();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Generation")
+	AProceduralMazeFacility* MazeReference;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Generation")
+	APCGTerrainLandscape* LandscapeReference;
+	*/
 };

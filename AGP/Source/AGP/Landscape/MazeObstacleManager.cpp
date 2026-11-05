@@ -1,8 +1,8 @@
 #include "MazeObstacleManager.h"
 #include "Containers/Queue.h"
-
 #include "ObstacleBase.h"
 #include "ProceduralMazeFacility.h"
+#include "Materials/MaterialInterface.h"
 
 AMazeObstacleManager::AMazeObstacleManager()
 {
@@ -30,13 +30,15 @@ FIntPoint AMazeObstacleManager::GetRandomFreeCell()
 
     while (Attempts--)
     {
-        int32 X = FMath::RandRange(
-            0,
-            MazeReference->GetCellsWidth() - 1);
+        int32 X =
+            RandomStream.RandRange(
+                0,
+                MazeReference->GetCellsWidth() - 1);
 
-        int32 Y = FMath::RandRange(
-            0,
-            MazeReference->GetCellsHeight() - 1);
+        int32 Y =
+            RandomStream.RandRange(
+                0,
+                MazeReference->GetCellsHeight() - 1);
 
         FIntPoint Cell(X, Y);
 
@@ -59,29 +61,141 @@ FIntPoint AMazeObstacleManager::GetRandomFreeCell()
     return FIntPoint(-1, -1);
 }
 
-void AMazeObstacleManager::SpawnDistractions()
+int32 AMazeObstacleManager::GetNearestSpillDistance(
+    const FIntPoint& Candidate) const
 {
-    
+    if (SpillCells.IsEmpty())
+    {
+        return INT_MAX;
+    }
+
+    int32 BestDistance = INT_MAX;
+
+    for (const FIntPoint& Existing : SpillCells)
+    {
+        const int32 Distance =
+            FMath::Abs(Candidate.X - Existing.X) +
+            FMath::Abs(Candidate.Y - Existing.Y);
+
+        BestDistance =
+            FMath::Min(
+                BestDistance,
+                Distance);
+    }
+
+    return BestDistance;
+}
+
+FIntPoint AMazeObstacleManager::GetBestSpillCell() const
+{
     if (!MazeReference)
     {
-        UE_LOG(LogTemp, Warning, TEXT("No maze reference assigned."));
+        return FIntPoint(-1, -1);
+    }
+
+    TArray<FIntPoint> Candidates;
+
+    for (int32 X = 0;
+         X < MazeReference->GetCellsWidth();
+         X++)
+    {
+        for (int32 Y = 0;
+             Y < MazeReference->GetCellsHeight();
+             Y++)
+        {
+            FIntPoint Cell(X, Y);
+
+            if (OccupiedCells.Contains(Cell))
+            {
+                continue;
+            }
+
+            if (Cell == MazeReference->GetStartCell())
+            {
+                continue;
+            }
+
+            if (Cell == MazeReference->GetEndCell())
+            {
+                continue;
+            }
+
+            Candidates.Add(Cell);
+        }
+    }
+
+    if (Candidates.IsEmpty())
+    {
+        return FIntPoint(-1, -1);
+    }
+
+    if (SpillCells.IsEmpty())
+    {
+        const int32 RandomIndex =
+            RandomStream.RandRange(
+                0,
+                Candidates.Num() - 1);
+
+        return Candidates[RandomIndex];
+    }
+
+    int32 FurthestDistance = -1;
+    TArray<FIntPoint> BestCells;
+
+    for (const FIntPoint& Cell : Candidates)
+    {
+        const int32 Distance =
+            GetNearestSpillDistance(Cell);
+
+        if (Distance > FurthestDistance)
+        {
+            FurthestDistance = Distance;
+
+            BestCells.Empty();
+            BestCells.Add(Cell);
+        }
+        else if (Distance == FurthestDistance)
+        {
+            BestCells.Add(Cell);
+        }
+    }
+
+    const int32 RandomIndex =
+        RandomStream.RandRange(
+            0,
+            BestCells.Num() - 1);
+
+    return BestCells[RandomIndex];
+}
+
+void AMazeObstacleManager::SpawnDistractions()
+{
+    if (!MazeReference)
+    {
+        UE_LOG(LogTemp, Warning,
+            TEXT("No maze reference assigned."));
         return;
     }
-    
-    UE_LOG(LogTemp, Warning,
-    TEXT("Maze Width=%d Height=%d"),
-    MazeReference->GetCellsWidth(),
-    MazeReference->GetCellsHeight());
-    
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Maze Width=%d Height=%d"),
+        MazeReference->GetCellsWidth(),
+        MazeReference->GetCellsHeight());
 
     if (DistractionClasses.IsEmpty())
     {
-        UE_LOG(LogTemp, Warning,
+        UE_LOG(
+            LogTemp,
+            Warning,
             TEXT("No distraction classes assigned."));
         return;
     }
 
-    for (int32 i = 0; i < NumberOfDistractions; i++)
+    for (int32 i = 0;
+         i < NumberOfDistractions;
+         i++)
     {
         FIntPoint Cell = GetRandomFreeCell();
 
@@ -93,7 +207,7 @@ void AMazeObstacleManager::SpawnDistractions()
         OccupiedCells.Add(Cell);
 
         int32 RandomIndex =
-            FMath::RandRange(
+            RandomStream.RandRange(
                 0,
                 DistractionClasses.Num() - 1);
 
@@ -106,14 +220,19 @@ void AMazeObstacleManager::SpawnDistractions()
                 Cell.Y);
 
         SpawnLocation.Z += ObstacleHeightOffset;
-
+        
+        //check :0000
+        UE_LOG(LogTemp, Warning,
+    TEXT("Spawn Location = %s"),
+    *SpawnLocation.ToString());
+        
         AObstacleBase* Spawned =
             GetWorld()->SpawnActor<AObstacleBase>(
                 ClassToSpawn,
                 SpawnLocation,
                 FRotator(
                     0.f,
-                    FMath::RandRange(0.f, 360.f),
+                    RandomStream.RandRange(0.f, 360.f),
                     0.f));
 
         if (Spawned)
@@ -121,27 +240,6 @@ void AMazeObstacleManager::SpawnDistractions()
             SpawnedObstacles.Add(Spawned);
         }
     }
-}
-
-void AMazeObstacleManager::SpawnObstacles()
-{
-    UE_LOG(LogTemp, Warning,
-        TEXT("SpawnObstacles() called"));
-
-    for (AActor* Obstacle : SpawnedObstacles)
-    {
-        if (Obstacle)
-        {
-            Obstacle->Destroy();
-        }
-    }
-
-    SpawnedObstacles.Empty();
-    OccupiedCells.Empty();
-    BlockedCells.Empty();
-
-    SpawnDistractions();
-    SpawnSpills();
 }
 
 void AMazeObstacleManager::SpawnSpills()
@@ -157,31 +255,22 @@ void AMazeObstacleManager::SpawnSpills()
     }
 
     int32 SpawnedCount = 0;
-    int32 Attempts = NumberOfSpills * 20;
+    int32 Attempts = NumberOfSpills * 10;
 
-    while (SpawnedCount < NumberOfSpills
-        && Attempts-- > 0)
+    while (SpawnedCount < NumberOfSpills &&
+           Attempts-- > 0)
     {
-        FIntPoint Cell =
-            GetRandomFreeCell();
+        FIntPoint Cell = GetBestSpillCell();
 
         if (Cell.X < 0)
         {
-            continue;
-        }
-
-        BlockedCells.Add(Cell);
-
-        if (!IsMazeStillReachable())
-        {
-            BlockedCells.Remove(Cell);
-            continue;
+            break;
         }
 
         OccupiedCells.Add(Cell);
 
         int32 RandomIndex =
-            FMath::RandRange(
+            RandomStream.RandRange(
                 0,
                 SpillClasses.Num() - 1);
 
@@ -193,8 +282,7 @@ void AMazeObstacleManager::SpawnSpills()
                 Cell.X,
                 Cell.Y);
 
-        SpawnLocation.Z +=
-            ObstacleHeightOffset;
+        SpawnLocation.Z += ObstacleHeightOffset;
 
         AObstacleBase* Spawned =
             GetWorld()->SpawnActor<AObstacleBase>(
@@ -202,19 +290,47 @@ void AMazeObstacleManager::SpawnSpills()
                 SpawnLocation,
                 FRotator::ZeroRotator);
 
-        if (Spawned)
+        if (!Spawned)
         {
-            SpawnedObstacles.Add(Spawned);
-
-            SpawnedCount++;
-
-            UE_LOG(
-                LogTemp,
-                Warning,
-                TEXT("Spawned Spill (%d,%d)"),
-                Cell.X,
-                Cell.Y);
+            OccupiedCells.Remove(Cell);
+            continue;
         }
+
+        const bool bMud = RandomStream.RandRange(0, 1) == 0;
+        
+        Spawned->AssignSpillType(
+            bMud,
+            MudMaterial,
+            SlimeMaterial);
+
+        if (!Spawned->IsPassable())
+        {
+            BlockedCells.Add(Cell);
+
+            if (!IsMazeStillReachable())
+            {
+                BlockedCells.Remove(Cell);
+                OccupiedCells.Remove(Cell);
+
+                Spawned->Destroy();
+                continue;
+            }
+        }
+
+        SpawnedObstacles.Add(Spawned);
+        SpillCells.Add(Cell);
+
+        SpawnedCount++;
+
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("Spawned %s spill at (%d,%d)"),
+            Spawned->IsMud()
+                ? TEXT("Mud")
+                : TEXT("Slime"),
+            Cell.X,
+            Cell.Y);
     }
 
     UE_LOG(
@@ -223,6 +339,40 @@ void AMazeObstacleManager::SpawnSpills()
         TEXT("Spawned %d/%d spills"),
         SpawnedCount,
         NumberOfSpills);
+}
+
+void AMazeObstacleManager::SpawnObstacles(int32 Seed)
+{
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("SpawnObstacles() called with Seed %d"),
+        Seed);
+    
+    UE_LOG(
+    LogTemp,
+    Warning,
+    TEXT("Distractions=%d Spills=%d"),
+    NumberOfDistractions,
+    NumberOfSpills);
+
+    RandomStream.Initialize(Seed);
+
+    for (AActor* Obstacle : SpawnedObstacles)
+    {
+        if (Obstacle)
+        {
+            Obstacle->Destroy();
+        }
+    }
+
+    SpawnedObstacles.Empty();
+    OccupiedCells.Empty();
+    BlockedCells.Empty();
+    SpillCells.Empty();
+
+    SpawnDistractions();
+    SpawnSpills();
 }
 
 bool AMazeObstacleManager::IsMazeStillReachable() const
@@ -259,11 +409,9 @@ bool AMazeObstacleManager::IsMazeStillReachable() const
 
         const FMazeCell& Cell =
             MazeCells[Current.Y][Current.X];
-
+        
         auto TryVisit =
-            [&](int32 NX,
-                int32 NY)
-            {
+            [&](int32 NX, int32 NY){
                 FIntPoint Next(NX, NY);
 
                 if (!MazeReference->IsInBounds(NX, NY))
