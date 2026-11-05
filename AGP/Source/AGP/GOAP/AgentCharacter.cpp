@@ -700,11 +700,11 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 	}
 
 
-	// Unstuck code - NPC cutting corners and getting stuck.
+	// Unstuck code - NPC cutting corners and getting stuck (hasn't moved more than 10cm)
 	if (FVector::DistSquared(GetActorLocation(), LastCheckedLocation) < 100.0f) // Hard matching 10cm movement
 	{
 		StuckTimer += GetWorld()->GetDeltaSeconds();
-		if (StuckTimer > 2.0f) // Stuck for 2 seconds
+		if (StuckTimer > 3.0f) // Stuck for 2 seconds
 		{
 			UE_LOG(LogTemp, Warning, TEXT("NPC is stuck trying to reach node! Forcing path clear."));
 			CurrentNodesPath.Empty();
