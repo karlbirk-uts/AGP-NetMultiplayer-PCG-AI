@@ -6,6 +6,7 @@
 #include "FWorldState.h"
 #include "Goal.h"
 // #include "Planner.h"
+#include "DrawDebugHelpers.h"
 #include "Action.h"
 #include "../Characters/EnemyCharacter.h"
 #include "Components/WidgetComponent.h"
@@ -73,7 +74,6 @@ private:
 	FTimerHandle VariableTimerHandle;
 
 	
-	
 	// Helper implementation
 	bool MoveTowards(const FVector& Location);
 
@@ -82,6 +82,9 @@ private:
 protected:
 	void TickDoActionImplementation(TObjectPtr<UAction> Action);
 
+	void InitBlueGreenGoals();
+	void InitPCGMazeGoals();
+
 	void InitGOAPGoalsActionsWorldStates();
 	
 	void AgentTickPatrol(UAction* CurrentAgentAction);
@@ -89,6 +92,9 @@ protected:
 	
 	// Testing timer to reset some AgentWworldState values to false
 	void ResetGoldBlueGreenGoals();
+	
+	
+	
 	
 public:
 	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GOAP NPC")
@@ -131,6 +137,11 @@ private:
 	int32 AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode);
 	
 	
+	
+	
+	// Maze testing
+	FVector StartOfMaze;
+	FVector EndOfMaze;
 };
 
 

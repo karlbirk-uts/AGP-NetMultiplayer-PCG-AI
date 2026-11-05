@@ -5,7 +5,7 @@
 #include "GameFramework/Actor.h"
 #include "PCGTerrainLandscape.generated.h"
 
-UCLASS()
+UCLASS(PrioritizeCategories="Landscape Fence")
 class AGP_API APCGTerrainLandscape : public AActor
 {
 	GENERATED_BODY()
@@ -45,7 +45,7 @@ protected:
 
 public:
 	virtual void Tick(float DeltaTime) override;
-	//virtual bool ShouldTickIfViewportsOnly() const override;
+	virtual bool ShouldTickIfViewportsOnly() const override;
     
 	TArray<float> TerrainHeights;
 

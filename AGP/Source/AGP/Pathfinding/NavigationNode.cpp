@@ -31,49 +31,43 @@ void ANavigationNode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	DrawDebugSphere(GetWorld(), GetActorLocation(), 50.0f, 16, FColor::Blue, true);
-	for (auto Node : ConnectedNodes)
+	DrawDebugSphere(
+		GetWorld(), 
+		GetActorLocation(), 
+		50.0f, 
+		16, FColor::Yellow, true, -1, 0, 2.0f);
+	for (ANavigationNode* Node : ConnectedNodes)
 	{
 		if (!Node) continue;
 		FColor LineColor = FColor::Red;
-		float LineThickness = 2.0f;
-		for (auto NeighbourNode : Node->ConnectedNodes)
+		float LineThickness = 8.0f;
+		for (ANavigationNode* NeighbourNode : Node->ConnectedNodes)
 		{
 			if (!NeighbourNode) continue;
 			if (NeighbourNode == this)
 			{
 				LineColor = FColor::Blue;
-				LineThickness = 1.0f;
+				LineThickness = 8.0f;
 				break;
 			}
 		}
-		DrawDebugLine(GetWorld(), GetActorLocation(), Node->GetActorLocation(), LineColor, true, -1, 0, LineThickness);
+		
+		FVector LineStart = FVector(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z + 100.0f);
+		FVector LineEnd = FVector(Node->GetActorLocation().X, Node->GetActorLocation().Y, Node->GetActorLocation().Z + 100.0f);
+		
+		DrawDebugLine(
+			GetWorld(), 
+			LineStart, 
+			LineEnd, 
+			LineColor, 
+			true, 
+			-1, 
+			0,
+			LineThickness);
 	}
 
 	
-	// PerceptionSource->
-	// 	RegisterForSense(
-	// 		UAISense_Sight::StaticClass());
-	//
-	// PerceptionSource->
-	// 	RegisterForSense(
-	// 		UAISense_Damage::StaticClass());
-	//
-	// PerceptionSource->
-	// 	RegisterForSense(
-	// 		UAISense_Hearing::StaticClass());
-	//
-	// PerceptionSource->
-	// 	RegisterForSense(
-	// 		UAISense_Touch::StaticClass());
-	//
-	// PerceptionSource->
-	// 	RegisterForSense(
-	// 		UAISense_Team::StaticClass());
-	//
-	// PerceptionSource->
-	// 	RegisterForSense(
-	// 		UAISense_Prediction::StaticClass());
+
 	
 }
 

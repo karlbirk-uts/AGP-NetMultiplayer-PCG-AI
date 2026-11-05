@@ -1,9 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "PathfindingSubsystem.h"
 #include "NavigationNode.h"
 #include "EngineUtils.h"
+#include "AGP/Landscape/ProceduralMazeFacility.h"
 #include "Algo/Reverse.h"
 
 USTRUCT()
@@ -16,7 +14,6 @@ struct FAStarNodeData
 	UPROPERTY()
 	ANavigationNode* ParentNode = nullptr;
 };
-
 
 void UPathfindingSubsystem::OnWorldBeginPlay(UWorld& World)
 {
@@ -33,10 +30,12 @@ TArray<FVector> UPathfindingSubsystem::GetRandomPath(const FVector& StartLocatio
 	return GetPath(FindNearestNode(StartLocation), GetRandomNode());
 }
 
+
 TArray<FVector> UPathfindingSubsystem::GetPath(const FVector& StartLocation, const FVector& TargetLocation)
 {
 	return GetPath(FindNearestNode(StartLocation), FindNearestNode(TargetLocation));
 }
+
 
 TArray<FVector> UPathfindingSubsystem::GetPathAway(const FVector& StartLocation, const FVector& TargetLocation)
 {
@@ -52,13 +51,18 @@ void UPathfindingSubsystem::PlaceProceduralNodes(
 	//Clear nodes
 	RemoveAllNodes();
 
+
 	// SPAWN NODES; ADD TO NavNodes array.
 	for (int i = 0; i < Width; ++i)
 	{
 		for (int j = 0; j < Height; ++j)
 		{
 			FVector Position = Vertices[i + j * Width];
-			if (ANavigationNode* Node = GetWorld()->SpawnActor<ANavigationNode>(Position, FRotator::ZeroRotator))
+			if (ANavigationNode* Node =
+				GetWorld()->
+				SpawnActor<ANavigationNode>(
+					Position,
+					FRotator::ZeroRotator))
 			{
 				NavNodes.Add(Node);
 
@@ -146,11 +150,6 @@ void UPathfindingSubsystem::PopulateNodes()
 		if (ANavigationNode* Node = *It)
 		{
 			NavNodes.Add(Node);
-
-			/*
-			// UE_LOG(LogTemp, Display, TEXT("Node at : %s"), *Node->GetActorLocation().ToString());
-			*/
-			// WILL ALWAYS PRINT.
 		}
 	}
 }
@@ -355,4 +354,141 @@ TArray<FVector> UPathfindingSubsystem::ReconstructPath(TMap<ANavigationNode*, FA
 	DrawDebugPath(Path);
 
 	return Path;
+}
+
+
+void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
+	const TArray<FVector>& CellVertices,
+	const int32 CellsWidth,
+	const int32 CellsHeight,
+	AActor* ParentActor,
+	const TArray<TArray<FMazeCell>>& MazeCells,
+	const FVector& MazeStartPosition,
+	const FVector& MazeEndPosition)
+{
+	// Clear existing tracking arrays
+	RemoveAllNodes();
+
+	// int32 MidCellY = CellsHeight / 2;
+	//
+	// int32 StartCellX = 0;
+	// int32 StartCellY = MidCellY;
+	//
+	// int32 EndCellX = CellsWidth - 1;
+	// int32 EndCellY = MidCellY;
+	
+	// Starting positions for NPCs later
+	// EDIT: "Unreal Engine runs multiple worlds simultaneously in the editor:
+	// • Editor World (EWorldType::Editor): 
+	// This is the world you see when modifying levels, placing actors, and 
+	// where your editor-ticking actor is updating the variable.
+	// • PIE World (EWorldType::PIE): 
+	// This is a brand-new, isolated world created the moment you click "Play.""
+	MazePCGStartNodePosition = MazeStartPosition;
+	MazePCGEndNodePosition = MazeEndPosition;
+
+
+	// Spawning nodes
+	for (int32 row = 0; row < CellsHeight; ++row)
+	{
+		for (int32 column = 0; column < CellsWidth; ++column)
+		{
+			int32 Index = column + (row * CellsWidth);
+			// int32 Index = row + (column * CellsWidth);
+
+
+			if (!CellVertices.IsValidIndex(Index))
+			{
+				continue;
+			}
+
+			FVector Position = CellVertices[Index];
+
+			if (ANavigationNode* Node =
+				GetWorld()->
+				SpawnActor<ANavigationNode>(
+					Position,
+					FRotator::ZeroRotator))
+			{
+				NavNodes.Add(Node);
+
+				// Attach to supplied parent actor to nest nodes to mesh and keep them self-contained.
+				if (ParentActor)
+				{
+					Node->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform);
+				}
+			}
+			else
+			{
+				// Unable to spawn a node. ZheGeBuHao.
+				UE_LOG(LogTemp, Error,
+				       TEXT("UPathfindingSubsystem::MazePCGPlaceProceduralNodes Failed to spawn NavNode"));
+			}
+		}
+	}
+
+
+	// Connect nodes to neighbours, NESW, where MazeCells walls can prevent connections
+	for (int row = 0; row < CellsWidth; ++row)
+	{
+		for (int column = 0; column < CellsHeight; ++column)
+		{
+			int32 Index = column + (row * CellsWidth);
+			// int32 Index = row + (column * CellsWidth);
+
+			if (!CellVertices.IsValidIndex(Index)) continue;
+
+			ANavigationNode* CurrentNode = NavNodes[Index];
+
+			if (!CurrentNode) continue;
+
+			bool bIsWallNorth = MazeCells[row][column].WallNorth;
+			bool bIsWallEast = MazeCells[row][column].WallEast;
+			bool bIsWallSouth = MazeCells[row][column].WallSouth;
+			bool bIsWallWest = MazeCells[row][column].WallWest;
+
+
+			// conditions for valid neighbours.
+			const bool bAddNorth = row < CellsHeight - 1;
+			const bool bAddSouth = row > 0;
+			const bool bAddEast = column < CellsHeight - 1;
+			const bool bAddWest = column > 0;
+
+			if (bAddNorth && !bIsWallNorth)
+			{
+				int32 NeighbourIndex = column + ((row + 1) * CellsWidth);
+				if (NavNodes.IsValidIndex(NeighbourIndex))
+				{
+					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+				}
+			}
+
+			if (bAddSouth && !bIsWallSouth)
+			{
+				int32 NeighbourIndex = column + ((row - 1) * CellsWidth);
+				if (NavNodes.IsValidIndex(NeighbourIndex))
+				{
+					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+				}
+			}
+
+			if (bAddEast && !bIsWallEast)
+			{
+				int32 NeighbourIndex = (column + 1) + (row * CellsWidth);
+				if (NavNodes.IsValidIndex(NeighbourIndex))
+				{
+					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+				}
+			}
+
+			if (bAddWest && !bIsWallWest)
+			{
+				int32 NeighbourIndex = (column - 1) + (row * CellsWidth);
+				if (NavNodes.IsValidIndex(NeighbourIndex))
+				{
+					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+				}
+			}
+		}
+	}
 }

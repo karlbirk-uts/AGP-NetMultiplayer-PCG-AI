@@ -7,6 +7,7 @@
 #include "Action.h"
 #include "AGP/Pathfinding/PathfindingSubsystem.h"
 #include "GameFramework/Actor.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "Components/WidgetComponent.h"
 
@@ -34,13 +35,40 @@ void AAgentCharacter::BeginPlay()
 
 
 	// Resetting most goals after 10 seconds
-	GetWorld()->GetTimerManager().SetTimer(
-		VariableTimerHandle,
-		this,
-		&AAgentCharacter::ResetGoldBlueGreenGoals,
-		10.0f,
-		false
-	);
+	// GetWorld()->GetTimerManager().SetTimer(
+	// 	VariableTimerHandle,
+	// 	this,
+	// 	&AAgentCharacter::ResetGoldBlueGreenGoals,
+	// 	10.0f,
+	// 	false
+	// );
+
+
+	// Wanting the start position and end position of the maze for NPC testing
+	AActor* FoundActor =
+		UGameplayStatics::GetActorOfClass(GetWorld(), AProceduralMazeFacility::StaticClass());
+	if (FoundActor)
+	{
+		AProceduralMazeFacility* ProceduralMazeFacility =
+			Cast<AProceduralMazeFacility>(FoundActor);
+		if (ProceduralMazeFacility)
+		{
+			StartOfMaze = ProceduralMazeFacility->GetMazeStartCellWorldPosition();
+			UE_LOG(LogTemp, Warning, TEXT("AAgentCharacter StartOfMaze %s"), *StartOfMaze.ToString());
+			EndOfMaze = ProceduralMazeFacility->GetMazeEndCellWorldPosition();
+			UE_LOG(LogTemp, Warning, TEXT("AAgentCharacter EndOfMaze %s"), *EndOfMaze.ToString());
+
+			// EDIT: unexpected defaults appearing
+			// Reviewing ProceduralMazeFacility public getters 
+			// Note:
+			// "Unreal Engine runs multiple worlds simultaneously in the editor:
+			// • Editor World (EWorldType::Editor): 
+			// This is the world you see when modifying levels, placing actors, and 
+			// where your editor-ticking actor is updating the variable.
+			// • PIE World (EWorldType::PIE): 
+			// This is a brand-new, isolated world created the moment you click "Play.""
+		}
+	}
 }
 
 void AAgentCharacter::Tick(float DeltaTime)
@@ -48,6 +76,112 @@ void AAgentCharacter::Tick(float DeltaTime)
 	UpdateTargetLocation();
 
 	TickDoCurrentPlan5();
+
+
+	// Visual lines and linetracing in maze
+	// FVector StartPos = GetActorLocation();
+	//
+	// // 4 lines, 150 units in world X and world Y axes
+	// FVector EndXPlus  = StartPos + FVector(150.f, 0.f, 0.f);
+	// FVector EndXMinus = StartPos + FVector(-150.f, 0.f, 0.f);
+	// FVector EndYPlus  = StartPos + FVector(0.f, 150.f, 0.f);
+	// FVector EndYMinus = StartPos + FVector(0.f, -150.f, 0.f);
+	//
+	// // Line Thickness = 2.0f
+	// DrawDebugLine(GetWorld(), StartPos, EndXPlus,  FColor::Red,    false, -1, 0, 2.f);
+	// DrawDebugLine(GetWorld(), StartPos, EndXMinus, FColor::Red,  false, -1, 0, 2.f);
+	// DrawDebugLine(GetWorld(), StartPos, EndYPlus,  FColor::Red,   false, -1, 0, 2.f);
+	// DrawDebugLine(GetWorld(), StartPos, EndYMinus, FColor::Red, false, -1, 0, 2.f);
+
+
+	// Linetracing and debugdrawlines
+	// FVector StartLocation = GetActorLocation();
+	//
+	// // Line ends
+	// FVector X150Plus = StartLocation + FVector(150.0f, 0.0f, 0.0f);
+	// FVector X150Minus = StartLocation + FVector(-150.f, 0.f, 0.f);
+	// FVector Y150Plus = StartLocation + FVector(0.f, 150.f, 0.f);
+	// FVector Y150Minus = StartLocation + FVector(0.f, -150.f, 0.f);
+	//
+	// // Ignore hits against the owner NPC 
+	// FHitResult HitResult;
+	// FCollisionQueryParams QueryParams;
+	// QueryParams.AddIgnoredActor(this);
+	//
+	// // Line trace looking for World static objects (like walls)
+	// bool bHitX150Plus = GetWorld()->LineTraceSingleByChannel(
+	// 	HitResult,
+	// 	StartLocation,
+	// 	X150Plus,
+	// 	ECC_WorldStatic, // Static walls
+	// 	QueryParams
+	// );
+	// DrawDebugLine(GetWorld(), StartLocation, X150Plus, bHitX150Plus ? FColor::Green : FColor::Red, false, -1.0f, 0,
+	//               2.0f);
+	//
+	// bool bHitX150Minus = GetWorld()->LineTraceSingleByChannel(
+	// 	HitResult,
+	// 	StartLocation,
+	// 	X150Minus,
+	// 	ECC_WorldStatic, // Static walls
+	// 	QueryParams
+	// );
+	// DrawDebugLine(GetWorld(), StartLocation, X150Minus, bHitX150Minus ? FColor::Green : FColor::Red, false, -1.0f, 0,
+	//               2.0f);
+	//
+	// bool bHitY150Plus = GetWorld()->LineTraceSingleByChannel(
+	// 	HitResult,
+	// 	StartLocation,
+	// 	Y150Plus,
+	// 	ECC_WorldStatic, // Static walls
+	// 	QueryParams
+	// );
+	// DrawDebugLine(GetWorld(), StartLocation, Y150Plus, bHitY150Plus ? FColor::Green : FColor::Red, false, -1.0f, 0,
+	//               2.0f);
+	//
+	// bool bHitY150Minus = GetWorld()->LineTraceSingleByChannel(
+	// 	HitResult,
+	// 	StartLocation,
+	// 	Y150Minus,
+	// 	ECC_WorldStatic, // Static walls
+	// 	QueryParams
+	// );
+	// DrawDebugLine(GetWorld(), StartLocation, Y150Minus, bHitY150Minus ? FColor::Green : FColor::Red, false, -1.0f, 0,
+	//               2.0f);
+
+	// If a wall is detected, tell PathfindingSubsystem
+	// if (bHitX150Plus && HitResult.GetActor())
+	// {
+	// 	if (PathfindingSubsystem)
+	// 	{
+	// 		// UProceduralMeshComponent
+	// 		UE_LOG(LogTemp, Warning, TEXT("bHitX150Plus = True"));
+	// 	}
+	// }
+	// if (bHitX150Minus && HitResult.GetActor())
+	// {
+	// 	if (PathfindingSubsystem)
+	// 	{
+	// 		// UProceduralMeshComponent
+	// 		UE_LOG(LogTemp, Warning, TEXT("bHitX150Minus = True"));
+	// 	}
+	// }
+	// if (bHitY150Plus && HitResult.GetActor())
+	// {
+	// 	if (PathfindingSubsystem)
+	// 	{
+	// 		// UProceduralMeshComponent
+	// 		UE_LOG(LogTemp, Warning, TEXT("bHitY150Plus = True"));
+	// 	}
+	// }
+	// if (bHitY150Minus && HitResult.GetActor())
+	// {
+	// 	if (PathfindingSubsystem)
+	// 	{
+	// 		// UProceduralMeshComponent
+	// 		UE_LOG(LogTemp, Warning, TEXT("bHitY150Minus = True"));
+	// 	}
+	// }
 }
 
 
@@ -61,51 +195,65 @@ void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 	{
 		AgentTickPatrol(Action);
 	}
-	else if (Action->UniqueName == "Action_MoveTowards_GoldSphere")
+	else if (Action->UniqueName == "Action_MoveTowards_StartOfMaze")
 	{
-		FVector GoldSphereLocation = FVector(2750, 2490, 360);
-		bool bIsGoalMet = MoveTowards(GoldSphereLocation);
+		// UE_LOG(LogTemp, Display, TEXT("StartOfMaze: %s"), *StartOfMaze.ToString());
+
+		bool bIsGoalMet = MoveTowards(StartOfMaze);
 		if (bIsGoalMet)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("bIsGoalMet = MoveTowards(GoldSphereLocation)"));
+			UE_LOG(LogTemp, Warning, TEXT("bIsGoalMet = MoveTowards(StartOfMaze): %s"), *StartOfMaze.ToString());
 
-			// This updated Action state should now
-			// prompt for AgentWorldState's Goal's review.
 			Action->bIsCompleted = true;
 		}
 	}
-	else if (Action->UniqueName == "Action_MoveTowards_BlueCylinder")
-	{
-		FVector BlueCylinderLocation = FVector(2740, 1610, 430);
-		bool bIsGoalMet = MoveTowards(BlueCylinderLocation);
-		if (bIsGoalMet)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("bIsGoalMet = MoveTowards(BlueCylinderLocation)"));
 
-			// This updated Action state should now
-			// prompt for AgentWorldState's Goal's review.
-			Action->bIsCompleted = true;
-		}
-	}
-	else if (Action->UniqueName == "Action_MoveTowards_GreenCone")
-	{
-		FVector GreenConeLocation = FVector(1660, 1220, 300);
-		bool bIsGoalMet = MoveTowards(GreenConeLocation);
-		if (bIsGoalMet)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("bIsGoalMet = MoveTowards(GreenConeLocation)"));
 
-			// This updated Action state should now
-			// prompt for AgentWorldState's Goal's review.
-			Action->bIsCompleted = true;
-		}
-	}
-	else if (Action->UniqueName == "Action_MoveTowards_ThreeDifferentColours")
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Action_MoveTowards_ThreeDifferentColours->bIsCompleted = true"));
-
-		Action->bIsCompleted = true;
-	}
+	// else if (Action->UniqueName == "Action_MoveTowards_GoldSphere")
+	// {
+	// 	FVector GoldSphereLocation = FVector(2750, 2490, 360);
+	// 	bool bIsGoalMet = MoveTowards(GoldSphereLocation);
+	// 	if (bIsGoalMet)
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("bIsGoalMet = MoveTowards(GoldSphereLocation)"));
+	//
+	// 		// This updated Action state should now
+	// 		// prompt for AgentWorldState's Goal's review.
+	// 		Action->bIsCompleted = true;
+	// 	}
+	// }
+	// else if (Action->UniqueName == "Action_MoveTowards_BlueCylinder")
+	// {
+	// 	FVector BlueCylinderLocation = FVector(2740, 1610, 430);
+	// 	bool bIsGoalMet = MoveTowards(BlueCylinderLocation);
+	// 	if (bIsGoalMet)
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("bIsGoalMet = MoveTowards(BlueCylinderLocation)"));
+	//
+	// 		// This updated Action state should now
+	// 		// prompt for AgentWorldState's Goal's review.
+	// 		Action->bIsCompleted = true;
+	// 	}
+	// }
+	// else if (Action->UniqueName == "Action_MoveTowards_GreenCone")
+	// {
+	// 	FVector GreenConeLocation = FVector(1660, 1220, 300);
+	// 	bool bIsGoalMet = MoveTowards(GreenConeLocation);
+	// 	if (bIsGoalMet)
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("bIsGoalMet = MoveTowards(GreenConeLocation)"));
+	//
+	// 		// This updated Action state should now
+	// 		// prompt for AgentWorldState's Goal's review.
+	// 		Action->bIsCompleted = true;
+	// 	}
+	// }
+	// else if (Action->UniqueName == "Action_MoveTowards_ThreeDifferentColours")
+	// {
+	// 	UE_LOG(LogTemp, Warning, TEXT("Action_MoveTowards_ThreeDifferentColours->bIsCompleted = true"));
+	//
+	// 	Action->bIsCompleted = true;
+	// }
 }
 
 void AAgentCharacter::BuildQueueFromPlan()
@@ -130,7 +278,10 @@ bool AAgentCharacter::MoveTowards(const FVector& DesiredLocation)
 	AddMovementInput(Direction, 1.0f);
 
 
-	if (FVector::DistSquared(DesiredLocation, NPCLocation) <= 62500.0f) // 2.5m
+	// if (FVector::DistSquared(DesiredLocation, NPCLocation) <= 62500.0f) // 2.5m
+
+	// Walking through PCGMaze likes some tighter waypoints adherence
+	if (FVector::DistSquared(DesiredLocation, NPCLocation) <= 22'500.0f) // 1.5m
 	{
 		return true;
 	}
@@ -158,52 +309,7 @@ void AAgentCharacter::InitGOAPGoalsActionsWorldStates()
 	AgentActions.Add(ActionWander);
 
 
-	// For MultiplayerMap.umap NPC examples (without rebuilding existing terrain)
-	// using predetermined static targets (that aren't too high or low off ground)
-
-	// Gold Sphere goal and action(s)
-	AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), false);
-
-	TObjectPtr<UGoal> GoalBeAtGoldSphere = NewObject<UGoal>(this);
-	GoalBeAtGoldSphere->GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), true);
-	GoalBeAtGoldSphere->GoalPriority = 2.0f;
-	AgentGoals.Add(GoalBeAtGoldSphere);
-
-	TObjectPtr<UAction> ActionMoveTowardsGoldSphere = NewObject<UAction>(this);
-	ActionMoveTowardsGoldSphere->UniqueName = "Action_MoveTowards_GoldSphere";
-	ActionMoveTowardsGoldSphere->ActionCost = 0.2;
-	ActionMoveTowardsGoldSphere->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), true);
-	AgentActions.Add(ActionMoveTowardsGoldSphere);
-
-
-	// Blue Cylinder
-	AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtBlueCylinder"), false);
-
-	TObjectPtr<UGoal> GoalBeAtBlueCylinder = NewObject<UGoal>(this);
-	GoalBeAtBlueCylinder->GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtBlueCylinder"), true);
-	GoalBeAtBlueCylinder->GoalPriority = 3.0f;
-	AgentGoals.Add(GoalBeAtBlueCylinder);
-
-	TObjectPtr<UAction> ActionMoveTowardsBlueCylinder = NewObject<UAction>(this);
-	ActionMoveTowardsBlueCylinder->UniqueName = "Action_MoveTowards_BlueCylinder";
-	ActionMoveTowardsBlueCylinder->ActionCost = 0.3;
-	ActionMoveTowardsBlueCylinder->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtBlueCylinder"), true);
-	AgentActions.Add(ActionMoveTowardsBlueCylinder);
-
-
-	// Green Cone
-	AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), false);
-
-	TObjectPtr<UGoal> GoalBeAtGreenCone = NewObject<UGoal>(this);
-	GoalBeAtGreenCone->GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), true);
-	GoalBeAtGreenCone->GoalPriority = 4.0f;
-	AgentGoals.Add(GoalBeAtGreenCone);
-
-	TObjectPtr<UAction> ActionMoveTowardsGreenCone = NewObject<UAction>(this);
-	ActionMoveTowardsGreenCone->UniqueName = "Action_MoveTowards_GreenCone";
-	ActionMoveTowardsGreenCone->ActionCost = 0.4;
-	ActionMoveTowardsGreenCone->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), true);
-	AgentActions.Add(ActionMoveTowardsGreenCone);
+	InitPCGMazeGoals();
 }
 
 void AAgentCharacter::SortGoalsDescendingPriority()
@@ -315,7 +421,7 @@ void AAgentCharacter::TickDoCurrentPlan5()
 						// THIS hack IGNORES whether this action's outcome had updated agentworldstate.
 						CurrentQueuedAction = Action;
 						CurrentQueuedAction->bIsCompleted = false;
-						AgentWorldState.StatesMap.Emplace(TEXT("bHasWandered"),false);
+						AgentWorldState.StatesMap.Emplace(TEXT("bHasWandered"), false);
 						break;
 					}
 				}
@@ -539,22 +645,48 @@ int32 AAgentCharacter::AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode)
 
 void AAgentCharacter::AgentTickPatrol(UAction* CurrentAgentAction)
 {
-	if (CurrentPath.IsEmpty())
+	if (PathfindingSubsystem)
 	{
-		if (PathfindingSubsystem)
+		if (CurrentNodesPath.IsEmpty())
 		{
-			CurrentPath = PathfindingSubsystem->GetRandomPath(GetActorLocation());
+			CurrentNodesPath = PathfindingSubsystem->GetRandomPath(GetActorLocation());
+
+			UE_LOG(LogTemp, Warning, TEXT("AgentTickPatrol() GetRandomPath(GetActorLocation()"));
+
+			if (CurrentNodesPath.IsEmpty())
+			{
+				CurrentAgentAction->bIsCompleted = true;
+				return;
+			}
+
+			UE_LOG(LogTemp, Warning, TEXT("CurrentNodesPath generated."));
+		}
+		else
+		{
+			// CurrentNodesPath bountiful
+			for (FVector currentNodeLoc : CurrentNodesPath)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("CurrentNodesPath currentNodeLoc: %s"), *currentNodeLoc.ToString());
+			}
 		}
 
+
 		// 
-		CurrentAgentAction->bIsCompleted = true;
+		// CurrentAgentAction->bIsCompleted = true;
 	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AAgentCharacter::AgentTickPatrol PathfindingSubsystem not found"));
+
+	}
+
+
 	AgentMoveAlongPath(CurrentAgentAction);
 }
 
 void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 {
-	if (CurrentPath.IsEmpty())
+	if (CurrentNodesPath.IsEmpty())
 	{
 		// Never called
 		// CurrentAction->bIsCompleted = true;
@@ -563,23 +695,50 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 	}
 
 
-	FVector NextLocation = CurrentPath[0];
-	FVector Direction = NextLocation - GetActorLocation();
+	FVector NextLocation = CurrentNodesPath[0];
+	FVector NPCLocation = GetActorLocation();
+
+	FVector NextLocationXY = FVector(NextLocation.X, NextLocation.Y, 0.0f);
+	FVector NPCLocationXY = FVector(NPCLocation.X, NPCLocation.Y, 0.0f);
+
+	FVector Direction = NextLocation - NPCLocation;
 	Direction.Normalize();
-	AddMovementInput(Direction, 1.0f);
+	AddMovementInput(Direction, 0.5f);
 
-	if (FVector::DistSquared(NextLocation, GetActorLocation()) <= PathingLocationThreshold * PathingLocationThreshold)
+	float MazePathingLocationThreshold = 160.0f;
+
+	if (FVector::DistSquared(NextLocationXY, NPCLocationXY) <=
+		(MazePathingLocationThreshold * MazePathingLocationThreshold))
 	{
-		CurrentPath.RemoveAt(0);
-		// UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentPath.RemoveAt(0);"));
+		CurrentNodesPath.RemoveAt(0);
+		UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentNodesPath.RemoveAt(0);"));
 
-		if (CurrentPath.IsEmpty())
+		if (CurrentNodesPath.IsEmpty())
 		{
 			CurrentAgentAction->bIsCompleted = true;
 			UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAction->bIsCompleted = true;"));
 		}
 	}
 }
+
+
+void AAgentCharacter::InitPCGMazeGoals()
+{
+	AgentWorldState.StatesMap.Add(TEXT("bHasReachedStartOfMaze"), false);
+
+	TObjectPtr<UGoal> GoalBeAtStartOfMaze = NewObject<UGoal>(this);
+	GoalBeAtStartOfMaze->GoalWorldState.StatesMap.Add(TEXT("bHasReachedStartOfMaze"), true);
+	GoalBeAtStartOfMaze->GoalPriority = 1.0f;
+	AgentGoals.Add(GoalBeAtStartOfMaze);
+
+	TObjectPtr<UAction> ActionMoveTowardsStartOfMaze = NewObject<UAction>(this);
+	ActionMoveTowardsStartOfMaze->UniqueName = "Action_MoveTowards_StartOfMaze";
+	ActionMoveTowardsStartOfMaze->ActionCost = 0.2;
+	ActionMoveTowardsStartOfMaze->ActionOutcomes.StatesMap.Add(TEXT("bHasReachedStartOfMaze"), true);
+	ActionMoveTowardsStartOfMaze->ActionPrereqs.StatesMap.Empty();
+	AgentActions.Add(ActionMoveTowardsStartOfMaze);
+}
+
 
 void AAgentCharacter::ResetGoldBlueGreenGoals()
 {
@@ -588,4 +747,54 @@ void AAgentCharacter::ResetGoldBlueGreenGoals()
 	AgentWorldState.StatesMap.Emplace(TEXT("bHasBeenAtGoldSphere"), false);
 	AgentWorldState.StatesMap.Emplace(TEXT("bHasBeenAtBlueCylinder"), false);
 	AgentWorldState.StatesMap.Emplace(TEXT("bHasBeenAtGreenCone"), false);
+}
+
+void AAgentCharacter::InitBlueGreenGoals()
+{
+	// For MultiplayerMap.umap NPC examples (without rebuilding existing terrain)
+	// using predetermined static targets (that aren't too high or low off ground)
+
+	// Gold Sphere goal and action(s)
+	AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), false);
+
+	TObjectPtr<UGoal> GoalBeAtGoldSphere = NewObject<UGoal>(this);
+	GoalBeAtGoldSphere->GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), true);
+	GoalBeAtGoldSphere->GoalPriority = 2.0f;
+	AgentGoals.Add(GoalBeAtGoldSphere);
+
+	TObjectPtr<UAction> ActionMoveTowardsGoldSphere = NewObject<UAction>(this);
+	ActionMoveTowardsGoldSphere->UniqueName = "Action_MoveTowards_GoldSphere";
+	ActionMoveTowardsGoldSphere->ActionCost = 0.2;
+	ActionMoveTowardsGoldSphere->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtGoldSphere"), true);
+	AgentActions.Add(ActionMoveTowardsGoldSphere);
+
+
+	// Blue Cylinder
+	AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtBlueCylinder"), false);
+
+	TObjectPtr<UGoal> GoalBeAtBlueCylinder = NewObject<UGoal>(this);
+	GoalBeAtBlueCylinder->GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtBlueCylinder"), true);
+	GoalBeAtBlueCylinder->GoalPriority = 3.0f;
+	AgentGoals.Add(GoalBeAtBlueCylinder);
+
+	TObjectPtr<UAction> ActionMoveTowardsBlueCylinder = NewObject<UAction>(this);
+	ActionMoveTowardsBlueCylinder->UniqueName = "Action_MoveTowards_BlueCylinder";
+	ActionMoveTowardsBlueCylinder->ActionCost = 0.3;
+	ActionMoveTowardsBlueCylinder->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtBlueCylinder"), true);
+	AgentActions.Add(ActionMoveTowardsBlueCylinder);
+
+
+	// Green Cone
+	AgentWorldState.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), false);
+
+	TObjectPtr<UGoal> GoalBeAtGreenCone = NewObject<UGoal>(this);
+	GoalBeAtGreenCone->GoalWorldState.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), true);
+	GoalBeAtGreenCone->GoalPriority = 4.0f;
+	AgentGoals.Add(GoalBeAtGreenCone);
+
+	TObjectPtr<UAction> ActionMoveTowardsGreenCone = NewObject<UAction>(this);
+	ActionMoveTowardsGreenCone->UniqueName = "Action_MoveTowards_GreenCone";
+	ActionMoveTowardsGreenCone->ActionCost = 0.4;
+	ActionMoveTowardsGreenCone->ActionOutcomes.StatesMap.Add(TEXT("bHasBeenAtGreenCone"), true);
+	AgentActions.Add(ActionMoveTowardsGreenCone);
 }
