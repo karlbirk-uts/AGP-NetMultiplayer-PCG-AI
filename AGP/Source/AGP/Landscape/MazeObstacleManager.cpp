@@ -238,6 +238,11 @@ void AMazeObstacleManager::SpawnDistractions()
 		if (Spawned)
 		{
 			SpawnedObstacles.Add(Spawned);
+			
+			if (MazeReference)
+			{
+				Spawned->AttachToActor(MazeReference, FAttachmentTransformRules::KeepWorldTransform);
+			}
 		}
 	}
 }
@@ -332,6 +337,12 @@ void AMazeObstacleManager::SpawnSpills()
                 : TEXT("Slime"),
             Cell.X,
             Cell.Y);
+    	
+    	
+    	if (MazeReference)
+    	{
+    		Spawned->AttachToActor(MazeReference, FAttachmentTransformRules::KeepWorldTransform);
+    	}
     }
 
 	UE_LOG(
