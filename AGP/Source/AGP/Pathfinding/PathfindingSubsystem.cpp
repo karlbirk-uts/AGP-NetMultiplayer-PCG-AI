@@ -369,17 +369,33 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 	// Clear existing tracking arrays
 	RemoveAllNodes();
 
+	// int32 MidCellY = CellsHeight / 2;
+	//
+	// int32 StartCellX = 0;
+	// int32 StartCellY = MidCellY;
+	//
+	// int32 EndCellX = CellsWidth - 1;
+	// int32 EndCellY = MidCellY;
+	
 	// Starting positions for NPCs later
+	// EDIT: "Unreal Engine runs multiple worlds simultaneously in the editor:
+	// • Editor World (EWorldType::Editor): 
+	// This is the world you see when modifying levels, placing actors, and 
+	// where your editor-ticking actor is updating the variable.
+	// • PIE World (EWorldType::PIE): 
+	// This is a brand-new, isolated world created the moment you click "Play.""
 	MazePCGStartNodePosition = MazeStartPosition;
 	MazePCGEndNodePosition = MazeEndPosition;
 
 
 	// Spawning nodes
-	for (int32 row = 0; row < CellsWidth; ++row)
+	for (int32 row = 0; row < CellsHeight; ++row)
 	{
-		for (int32 column = 0; column < CellsHeight; ++column)
+		for (int32 column = 0; column < CellsWidth; ++column)
 		{
-			int32 Index = row + (column * CellsWidth);
+			int32 Index = column + (row * CellsWidth);
+			// int32 Index = row + (column * CellsWidth);
+
 
 			if (!CellVertices.IsValidIndex(Index))
 			{
@@ -417,7 +433,8 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 	{
 		for (int column = 0; column < CellsHeight; ++column)
 		{
-			int32 Index = row + (column * CellsWidth);
+			int32 Index = column + (row * CellsWidth);
+			// int32 Index = row + (column * CellsWidth);
 
 			if (!CellVertices.IsValidIndex(Index)) continue;
 
@@ -425,53 +442,53 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 
 			if (!CurrentNode) continue;
 
-			bool bIsWallNorth = MazeCells[column][row].WallNorth;
-			bool bIsWallEast = MazeCells[column][row].WallEast;
-			bool bIsWallSouth = MazeCells[column][row].WallSouth;
-			bool bIsWallWest = MazeCells[column][row].WallWest;
+			bool bIsWallNorth = MazeCells[row][column].WallNorth;
+			bool bIsWallEast = MazeCells[row][column].WallEast;
+			bool bIsWallSouth = MazeCells[row][column].WallSouth;
+			bool bIsWallWest = MazeCells[row][column].WallWest;
 
 
 			// conditions for valid neighbours.
-			const bool bAddEast = row < CellsWidth - 1;
-			const bool bAddWest = row > 0;
-			const bool bAddNorth = column < CellsHeight - 1;
-			const bool bAddSouth = column > 0;
+			const bool bAddNorth = row < CellsHeight - 1;
+			const bool bAddSouth = row > 0;
+			const bool bAddEast = column < CellsHeight - 1;
+			const bool bAddWest = column > 0;
 
-			if (bAddEast && !bIsWallEast)
+			if (bAddNorth && !bIsWallNorth)
 			{
-				int32 NeighbourIndex = (row + 1) + (column * CellsWidth);
-				if (NavNodes.IsValidIndex(NeighbourIndex))
-				{
-					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
-				}
-			}
-			
-			if (bAddWest && !bIsWallWest) 
-			{
-				int32 NeighbourIndex = (row - 1) + (column * CellsWidth);
+				int32 NeighbourIndex = column + ((row + 1) * CellsWidth);
 				if (NavNodes.IsValidIndex(NeighbourIndex))
 				{
 					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
 				}
 			}
 
-			if (bAddNorth && !bIsWallNorth) 
+			if (bAddSouth && !bIsWallSouth)
 			{
-				int32 NeighbourIndex = row + ((column + 1) * CellsWidth);
-				if (NavNodes.IsValidIndex(NeighbourIndex))
-				{
-					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
-				}
-			}
-			if (bAddSouth && !bIsWallSouth) 
-			{
-				int32 NeighbourIndex = row + ((column - 1) * CellsWidth);
+				int32 NeighbourIndex = column + ((row - 1) * CellsWidth);
 				if (NavNodes.IsValidIndex(NeighbourIndex))
 				{
 					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
 				}
 			}
 
+			if (bAddEast && !bIsWallEast)
+			{
+				int32 NeighbourIndex = (column + 1) + (row * CellsWidth);
+				if (NavNodes.IsValidIndex(NeighbourIndex))
+				{
+					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+				}
+			}
+
+			if (bAddWest && !bIsWallWest)
+			{
+				int32 NeighbourIndex = (column - 1) + (row * CellsWidth);
+				if (NavNodes.IsValidIndex(NeighbourIndex))
+				{
+					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+				}
+			}
 		}
 	}
 }

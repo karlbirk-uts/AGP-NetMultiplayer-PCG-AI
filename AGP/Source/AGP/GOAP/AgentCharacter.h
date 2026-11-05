@@ -74,7 +74,6 @@ private:
 	FTimerHandle VariableTimerHandle;
 
 	
-	
 	// Helper implementation
 	bool MoveTowards(const FVector& Location);
 
@@ -84,7 +83,8 @@ protected:
 	void TickDoActionImplementation(TObjectPtr<UAction> Action);
 
 	void InitBlueGreenGoals();
-	
+	void InitPCGMazeGoals();
+
 	void InitGOAPGoalsActionsWorldStates();
 	
 	void AgentTickPatrol(UAction* CurrentAgentAction);
@@ -137,6 +137,11 @@ private:
 	int32 AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode);
 	
 	
+	
+	
+	// Maze testing
+	FVector StartOfMaze;
+	FVector EndOfMaze;
 };
 
 

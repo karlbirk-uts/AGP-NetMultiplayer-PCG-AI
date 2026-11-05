@@ -24,6 +24,36 @@ AProceduralMazeFacility::AProceduralMazeFacility()
 void AProceduralMazeFacility::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	
+	// If we have valid cell data duplicated from the Editor, rebuild the visuals/systems
+	if (MazeCells.Num() > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PIE: Found duplicated layout. Rebuilding meshes..."));
+        
+		// Clear old PIE instance components just in case
+		if (MazeMesh) MazeMesh->ClearMeshSection(0);
+		if (WallMesh) WallMesh->ClearMeshSection(0);
+
+		// Build the geometry and pass data to pathfinding using the PRESERVED data
+		GenerateFloorGrid();
+		GenerateWallMeshes();
+        
+		if (ObstacleManager)
+		{
+			ObstacleManager->SpawnObstacles();
+		}
+
+		SpawnNavNodesAndPathing();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility PIE: Found no layout. Rebuilding meshes..."));
+
+		// Fallback if no data was generated in editor beforehand
+		// GenerateMaze();
+	}
+
 }
 
 void AProceduralMazeFacility::Tick(float DeltaTime)
@@ -355,10 +385,23 @@ void AProceduralMazeFacility::SpawnNavNodesAndPathing()
 		}
 	}
 
-	FVector MazeStartPosition = GetCellWorldPosition(StartCellX, StartCellY);
-	FVector MazeEndPosition = GetCellWorldPosition(EndCellY, EndCellX);
 
+	int32 MidCellY = CellsHeight / 2;
+
+	int32 CellStartX = 0;
+	int32 CellStartY = MidCellY;
+
+	int32 CellEndX = CellsWidth - 1;
+	int32 CellEndY = MidCellY;
+
+	FVector MazeStartPosition = GetCellWorldPosition(CellStartX, CellStartY);
+	FVector MazeEndPosition = GetCellWorldPosition(CellEndX, CellEndY);
 	
+	UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility::SpawnNavNodesAndPathing MazeStartPosition: %s"), *MazeStartPosition.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility::SpawnNavNodesAndPathing MazeEndPosition: %s"), *MazeEndPosition.ToString());
+
+
+
 	if (UPathfindingSubsystem* PathfindingSubsystem = GetWorld()->GetSubsystem<UPathfindingSubsystem>())
 	{
 	    UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility UPathfindingSubsystem new nodes"));
@@ -377,7 +420,7 @@ void AProceduralMazeFacility::SpawnNavNodesAndPathing()
 	{
 	    UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility couldn't see UPathfindingSubsystem"));
 	}
-	
+
 }
 
 FVector AProceduralMazeFacility::GetCellWorldPosition(int32 CellX, int32 CellY) const
@@ -392,4 +435,23 @@ FVector AProceduralMazeFacility::GetCellWorldPosition(int32 CellX, int32 CellY) 
 bool AProceduralMazeFacility::ShouldTickIfViewportsOnly() const
 {
 	return true;
+}
+
+FVector AProceduralMazeFacility::GetMazeStartCellWorldPosition() 
+{
+	FVector MazeStartPosition = GetCellWorldPosition(StartCellX, StartCellY);
+	
+	UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility MazeStartPosition %s"), *MazeStartPosition.ToString());
+
+	
+	return MazeStartPosition;
+}
+
+FVector AProceduralMazeFacility::GetMazeEndCellWorldPosition() 
+{
+	FVector MazeEndPosition = GetCellWorldPosition(EndCellX, EndCellY);
+
+	UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility MazeEndPosition %s"), *MazeEndPosition.ToString());
+
+	return MazeEndPosition;
 }
