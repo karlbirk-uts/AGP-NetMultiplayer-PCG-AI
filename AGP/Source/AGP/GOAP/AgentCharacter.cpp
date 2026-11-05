@@ -360,7 +360,9 @@ void AAgentCharacter::TickDoCurrentPlan5()
 
 		CurrentQueuedAction->bIsCompleted = false;
 		CurrentQueuedAction = nullptr;
-		return; // Halt execution for this frame to let world state settle
+		
+		// Early exit breaks patrol state...
+		// return; // Halt execution for this frame to let world state settle
 	}
 
 	// If queued action empty/null, try to fetch or build a new plan
@@ -418,6 +420,8 @@ void AAgentCharacter::TickDoCurrentPlan5()
 				{
 					if (Action && Action->UniqueName == "Action_Wander")
 					{
+						UE_LOG(LogTemp, VeryVerbose, TEXT("NPC DEFAULT WANDER BEHAVIOUR CHANGED. BUHAO"));
+
 						// THIS hack IGNORES whether this action's outcome had updated agentworldstate.
 						CurrentQueuedAction = Action;
 						CurrentQueuedAction->bIsCompleted = false;
@@ -429,7 +433,7 @@ void AAgentCharacter::TickDoCurrentPlan5()
 		}
 	}
 
-	// 4. Execute the current action if valid
+	// Execute the current action if valid
 	if (CurrentQueuedAction)
 	{
 		TickDoActionImplementation(CurrentQueuedAction);
@@ -664,9 +668,10 @@ void AAgentCharacter::AgentTickPatrol(UAction* CurrentAgentAction)
 		else
 		{
 			// CurrentNodesPath bountiful
-			for (FVector currentNodeLoc : CurrentNodesPath)
+			// for (FVector currentNodeLoc : CurrentNodesPath)
+			for (int32 i = 0; i < CurrentNodesPath.Num(); ++i)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("CurrentNodesPath currentNodeLoc: %s"), *currentNodeLoc.ToString());
+				UE_LOG(LogTemp, Warning, TEXT("CurrentNodesPath[%d]: %s"), i,*CurrentNodesPath[i].ToString());
 			}
 		}
 
@@ -695,21 +700,45 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 	}
 
 
+	// Unstuck code - NPC cutting corners and getting stuck.
+	if (FVector::DistSquared(GetActorLocation(), LastCheckedLocation) < 100.0f) // Hard matching 10cm movement
+	{
+		StuckTimer += GetWorld()->GetDeltaSeconds();
+		if (StuckTimer > 2.0f) // Stuck for 2 seconds
+		{
+			UE_LOG(LogTemp, Warning, TEXT("NPC is stuck trying to reach node! Forcing path clear."));
+			CurrentNodesPath.Empty();
+			StuckTimer = 0.0f;
+			return;
+		}
+	}
+	else
+	{
+		LastCheckedLocation = GetActorLocation();
+		StuckTimer = 0.0f;
+	}
+
+	
+	
+	
+	
 	FVector NextLocation = CurrentNodesPath[0];
 	FVector NPCLocation = GetActorLocation();
 
 	FVector NextLocationXY = FVector(NextLocation.X, NextLocation.Y, 0.0f);
 	FVector NPCLocationXY = FVector(NPCLocation.X, NPCLocation.Y, 0.0f);
 
-	FVector Direction = NextLocation - NPCLocation;
+	FVector Direction = NextLocationXY - NPCLocationXY;
 	Direction.Normalize();
 	AddMovementInput(Direction, 0.5f);
 
-	float MazePathingLocationThreshold = 160.0f;
+	// float MazePathingLocationThreshold = 160.0f; // 3D distance
+	float MazePathingLocationThreshold = 110.0f; // 2D distance;
 
 	if (FVector::DistSquared(NextLocationXY, NPCLocationXY) <=
 		(MazePathingLocationThreshold * MazePathingLocationThreshold))
 	{
+
 		CurrentNodesPath.RemoveAt(0);
 		UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentNodesPath.RemoveAt(0);"));
 
@@ -718,7 +747,12 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 			CurrentAgentAction->bIsCompleted = true;
 			UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAction->bIsCompleted = true;"));
 		}
+		
+		
 	}
+	
+	
+
 }
 
 

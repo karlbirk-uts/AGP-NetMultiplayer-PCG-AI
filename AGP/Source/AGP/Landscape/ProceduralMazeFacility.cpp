@@ -21,11 +21,11 @@ AProceduralMazeFacility::AProceduralMazeFacility()
     PrimaryActorTick.bStartWithTickEnabled = true;
     
     bReplicates = true;
-	WallMesh = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("WallMesh"));
-	WallMesh->SetupAttachment(RootComponent);
+	// WallMesh = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("WallMesh"));
+	// WallMesh->SetupAttachment(RootComponent);
 
-	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = true;
+	// PrimaryActorTick.bCanEverTick = true;
+	// PrimaryActorTick.bStartWithTickEnabled = true;
 }
 
 void AProceduralMazeFacility::BeginPlay()

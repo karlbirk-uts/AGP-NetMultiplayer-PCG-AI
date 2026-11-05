@@ -142,6 +142,12 @@ private:
 	// Maze testing
 	FVector StartOfMaze;
 	FVector EndOfMaze;
+	
+	
+	// Maze movement required some NPC movement tweaking
+	FVector LastCheckedLocation;
+	float StuckTimer = 0.0f;
+
 };
 
 
