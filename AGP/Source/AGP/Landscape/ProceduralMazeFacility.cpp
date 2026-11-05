@@ -34,32 +34,34 @@ void AProceduralMazeFacility::BeginPlay()
 	
 	
 	// If we have valid cell data duplicated from the Editor, rebuild the visuals/systems
-	if (MazeCells.Num() > 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("PIE: Found duplicated layout. Rebuilding meshes..."));
-        
-		// Clear old PIE instance components just in case
-		if (MazeMesh) MazeMesh->ClearMeshSection(0);
-		if (WallMesh) WallMesh->ClearMeshSection(0);
-
-		// Build the geometry and pass data to pathfinding using the PRESERVED data
-		GenerateFloorGrid();
-		GenerateWallMeshes();
-        
-		if (ObstacleManager)
-		{
-			ObstacleManager->SpawnObstacles();
-		}
-
-		SpawnNavNodesAndPathing();
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility PIE: Found no layout. Rebuilding meshes..."));
-
-		// Fallback if no data was generated in editor beforehand
-		// GenerateMaze();
-	}
+	// if (MazeCells.Num() > 0)
+	// {
+	// 	UE_LOG(LogTemp, Warning, TEXT("PIE: Found duplicated layout. Rebuilding meshes..."));
+ //        
+	// 	// Clear old PIE instance components just in case
+	// 	if (MazeMesh) MazeMesh->ClearMeshSection(0);
+	// 	if (WallMesh) WallMesh->ClearMeshSection(0);
+	//
+	// 	// Build the geometry and pass data to pathfinding using the PRESERVED data
+	// 	GenerateFloorGrid();
+	// 	GenerateWallMeshes();
+ //        
+	// 	if (ObstacleManager)
+	// 	{
+	// 		// ObstacleManager->SpawnObstacles();
+	// 		ObstacleManager->SpawnObstacles();
+	//
+	// 	}
+	//
+	// 	SpawnNavNodesAndPathing();
+	// }
+	// else
+	// {
+	// 	UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility PIE: Found no layout. Rebuilding meshes..."));
+	//
+	// 	// Fallback if no data was generated in editor beforehand
+	// 	// GenerateMaze();
+	// }
 
 }
 
@@ -206,7 +208,7 @@ void AProceduralMazeFacility::GenerateMaze()
 	if (ObstacleManager)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("obstacle manager exists"));
-		ObstacleManager->SpawnObstacles();
+		ObstacleManager->SpawnObstacles(CurrentSeed);
 	}
 	else
 	{
@@ -460,12 +462,13 @@ void AProceduralMazeFacility::MulticastRegenerateMaze_Implementation(
 void AProceduralMazeFacility::GenerateMazeFromSeed(
     int32 Seed)
 {
-    CurrentSeed = Seed;
+	CurrentSeed = Seed;
 
-    RandomStream.Initialize(Seed);
+	RandomStream.Initialize(Seed);
 
-    ClearMaze();
-    GenerateMaze();
+	ClearMaze();
+	GenerateMaze();
+}
 bool AProceduralMazeFacility::ShouldTickIfViewportsOnly() const
 {
 	return true;

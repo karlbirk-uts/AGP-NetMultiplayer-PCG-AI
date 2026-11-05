@@ -95,9 +95,9 @@ private:
 
 	int32 CurrentSeed = 0;
 
-	void GenerateFloorGrid();
-	void InitializeMazeCells();
-	void GenerateWallMeshes();
+	// void GenerateFloorGrid();
+	// void InitializeMazeCells();
+	// void GenerateWallMeshes();
 
 	void SpawnNavNodesAndPathing();
 
@@ -146,17 +146,17 @@ public: // for obstacles!
 		int32 InSpills,
 		int32 InDistractions);
 
-	float GetCellSize() const
-	{
-		return CellSize;
-	}
+	// float GetCellSize() const
+	// {
+	// 	return CellSize;
+	// }
 
 	// cell-to-world helper
-	UFUNCTION(BlueprintCallable)
-	FVector GetCellWorldPosition(int32 CellX, int32 CellY) const;
+	// UFUNCTION(BlueprintCallable)
+	// FVector GetCellWorldPosition(int32 CellX, int32 CellY) const;
 
-	UPROPERTY(EditAnywhere, Category = "Maze")
-	AMazeObstacleManager *ObstacleManager;
+	// UPROPERTY(EditAnywhere, Category = "Maze")
+	// AMazeObstacleManager *ObstacleManager;
 
 	virtual bool ShouldTickIfViewportsOnly() const override;
 

@@ -1,12 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+#include "AGP_PlayerController.h"
+
 #include "AGPGameModeBase.h"
 #include "MultiplayerGameMode.h"
 
 
 #include "Landscape/PCGTerrainLandscape.h"
 #include "Landscape/MazeObstacleManager.h"
-#include "AGP_PlayerController.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Landscape/ProceduralMazeFacility.h"

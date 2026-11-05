@@ -170,107 +170,78 @@ FIntPoint AMazeObstacleManager::GetBestSpillCell() const
 
 void AMazeObstacleManager::SpawnDistractions()
 {
-    if (!MazeReference)
-    {
-        UE_LOG(LogTemp, Warning,
-            TEXT("No maze reference assigned."));
-        return;
-    }
-
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("Maze Width=%d Height=%d"),
-        MazeReference->GetCellsWidth(),
-        MazeReference->GetCellsHeight());
-
-    if (DistractionClasses.IsEmpty())
-    {
-        UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT("No distraction classes assigned."));
-        return;
-    }
-
-    for (int32 i = 0;
-         i < NumberOfDistractions;
-         i++)
-    {
-        FIntPoint Cell = GetRandomFreeCell();
 	if (!MazeReference)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("No maze reference assigned."));
+		UE_LOG(LogTemp, Warning,
+			TEXT("No maze reference assigned."));
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning,
-	       TEXT("Maze Width=%d Height=%d"),
-	       MazeReference->GetCellsWidth(),
-	       MazeReference->GetCellsHeight());
-
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Maze Width=%d Height=%d"),
+		MazeReference->GetCellsWidth(),
+		MazeReference->GetCellsHeight());
 
 	if (DistractionClasses.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning,
-		       TEXT("No distraction classes assigned."));
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("No distraction classes assigned."));
 		return;
 	}
 
-	for (int32 i = 0; i < NumberOfDistractions; i++)
+	for (int32 i = 0;
+		 i < NumberOfDistractions;
+		 i++)
 	{
 		FIntPoint Cell = GetRandomFreeCell();
 
-        int32 RandomIndex =
-            RandomStream.RandRange(
-                0,
-                DistractionClasses.Num() - 1);
+		if (Cell.X < 0)
+		{
+			continue;
+		}
 
 		OccupiedCells.Add(Cell);
 
 		int32 RandomIndex =
-			FMath::RandRange(
+			RandomStream.RandRange(
 				0,
 				DistractionClasses.Num() - 1);
 
-        SpawnLocation.Z += ObstacleHeightOffset;
-        
-        //check :0000
-        UE_LOG(LogTemp, Warning,
-    TEXT("Spawn Location = %s"),
-    *SpawnLocation.ToString());
-        
-        AObstacleBase* Spawned =
-            GetWorld()->SpawnActor<AObstacleBase>(
-                ClassToSpawn,
-                SpawnLocation,
-                FRotator(
-                    0.f,
-                    RandomStream.RandRange(0.f, 360.f),
-                    0.f));
+		TSubclassOf<AObstacleBase> ClassToSpawn =
+			DistractionClasses[RandomIndex];
+
+		FVector SpawnLocation =
+			MazeReference->GetCellWorldPosition(
+				Cell.X,
+				Cell.Y);
 
 		SpawnLocation.Z += ObstacleHeightOffset;
-
+        
+		//check :0000
+		UE_LOG(LogTemp, Warning,
+	TEXT("Spawn Location = %s"),
+	*SpawnLocation.ToString());
+        
 		AObstacleBase* Spawned =
 			GetWorld()->SpawnActor<AObstacleBase>(
 				ClassToSpawn,
 				SpawnLocation,
 				FRotator(
 					0.f,
-					FMath::RandRange(0.f, 360.f),
+					RandomStream.RandRange(0.f, 360.f),
 					0.f));
 
 		if (Spawned)
 		{
 			SpawnedObstacles.Add(Spawned);
-
-			if (MazeReference)
-			{
-				Spawned->AttachToActor(MazeReference, FAttachmentTransformRules::KeepWorldTransform);
-			}
 		}
 	}
 }
+
 
 void AMazeObstacleManager::SpawnSpills()
 {
