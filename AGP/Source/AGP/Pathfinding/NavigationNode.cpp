@@ -1,13 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "NavigationNode.h"
-
-#include "Perception/AISense_Damage.h"
-#include "Perception/AISense_Hearing.h"
-#include "Perception/AISense_Prediction.h"
-#include "Perception/AISense_Team.h"
-#include "Perception/AISense_Touch.h"
 
 // Sets default values
 ANavigationNode::ANavigationNode()
@@ -23,7 +14,7 @@ ANavigationNode::ANavigationNode()
 		SetRootComponent(LocationComponent);
 	}
 
-	PerceptionSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>("Perception Source");
+	// PerceptionSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>("Perception Source");
 }
 
 // Called when the game starts or when spawned
@@ -31,11 +22,48 @@ void ANavigationNode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	DrawDebugSphere(
-		GetWorld(), 
-		GetActorLocation(), 
-		50.0f, 
-		16, FColor::Yellow, true, -1, 0, 2.0f);
+	if (bIsJunction)
+	{
+		DrawDebugSphere(
+			GetWorld(),
+			GetActorLocation(),
+			50.0f,
+			16,
+			FColor::Orange,
+			true,
+			-1,
+			0,
+			2.0f);
+	}
+	else if (bIsDeadend)
+	{
+		DrawDebugSphere(
+			GetWorld(),
+			GetActorLocation(),
+			50.0f,
+			16,
+			FColor::Red,
+			true,
+			-1,
+			0,
+			2.0f);
+	}
+	else
+	{
+		DrawDebugSphere(
+			GetWorld(),
+			GetActorLocation(),
+			50.0f,
+			16,
+			FColor::Yellow,
+			true,
+			-1,
+			0,
+			2.0f);
+	}
+
+
+	// Draw connecting lines
 	for (ANavigationNode* Node : ConnectedNodes)
 	{
 		if (!Node) continue;
@@ -51,24 +79,21 @@ void ANavigationNode::BeginPlay()
 				break;
 			}
 		}
-		
+
 		FVector LineStart = FVector(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z + 100.0f);
-		FVector LineEnd = FVector(Node->GetActorLocation().X, Node->GetActorLocation().Y, Node->GetActorLocation().Z + 100.0f);
-		
+		FVector LineEnd = FVector(Node->GetActorLocation().X, Node->GetActorLocation().Y,
+		                          Node->GetActorLocation().Z + 100.0f);
+
 		DrawDebugLine(
-			GetWorld(), 
-			LineStart, 
-			LineEnd, 
-			LineColor, 
-			true, 
-			-1, 
+			GetWorld(),
+			LineStart,
+			LineEnd,
+			LineColor,
+			true,
+			-1,
 			0,
 			LineThickness);
 	}
-
-	
-
-	
 }
 
 // Called every frame
@@ -89,4 +114,9 @@ void ANavigationNode::AddConnectedNode(ANavigationNode* Node)
 		return;
 	}
 	ConnectedNodes.Add(Node);
+}
+
+FVector ANavigationNode::GetLocationComponentTransform()
+{
+	return LocationComponent->GetComponentLocation();
 }

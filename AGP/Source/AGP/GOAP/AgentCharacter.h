@@ -58,10 +58,10 @@ private:
 
 	// UFUNCTION()
 	// void TickDoCurrentPlan();
-	
+
 	UFUNCTION()
 	void TickDoCurrentPlan5();
-	
+
 	// Poppable version of TArray used inside TickDoCurrentPlan()
 	TQueue<TObjectPtr<UAction>> CurrentPlanQueue;
 
@@ -73,29 +73,22 @@ private:
 	// Testing timer to reset some AgentWworldState values to false
 	FTimerHandle VariableTimerHandle;
 
-	
+
 	// Helper implementation
 	bool MoveTowards(const FVector& Location);
 
 	void SortGoalsDescendingPriority();
-	
+
 protected:
 	void TickDoActionImplementation(TObjectPtr<UAction> Action);
 
-	void InitBlueGreenGoals();
 	void InitPCGMazeGoals();
 
 	void InitGOAPGoalsActionsWorldStates();
-	
+
 	void AgentTickPatrol(UAction* CurrentAgentAction);
 	void AgentMoveAlongPath(UAction* CurrentAgentAction);
-	
-	// Testing timer to reset some AgentWworldState values to false
-	void ResetGoldBlueGreenGoals();
-	
-	
-	
-	
+
 public:
 	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GOAP NPC")
 	// TObjectPtr<UWidgetComponent> GoalWidgetComponent;
@@ -104,13 +97,10 @@ public:
 	// UFUNCTION(BlueprintImplementableEvent, Category = "GOAP NPC")
 	// void UpdateGoalText(const FString& NewGoalText);
 
-	
-	
-	
-	
-	
-	
-	
+
+	void SetNearestNavNodeIsMud(bool bIsMud);
+
+
 	// TESTING ALT PLANNER
 public:
 	// Get A* efficient queue of Actions to reach Goal
@@ -122,7 +112,6 @@ public:
 	);
 
 private:
-
 	// Local reusable node queue to test all from-Goal-to-Actions-to-NPCState 
 	// permutations	that potentially connect NPCState to Goal.
 	// TArray<FPlannerNode> PlannerNodes;
@@ -135,19 +124,16 @@ private:
 	// NON-POINTER version of graph building because GC 
 	// seems to be hungry.
 	int32 AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode);
-	
-	
-	
-	
+
+
 	// Maze testing
 	FVector StartOfMaze;
 	FVector EndOfMaze;
-	
-	
+
+
 	// Maze movement required some NPC movement tweaking
 	FVector LastCheckedLocation;
 	float StuckTimer = 0.0f;
-
 };
 
 

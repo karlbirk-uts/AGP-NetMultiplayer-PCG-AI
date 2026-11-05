@@ -357,6 +357,16 @@ TArray<FVector> UPathfindingSubsystem::ReconstructPath(TMap<ANavigationNode*, FA
 }
 
 
+/**
+ * Spawn navigationnodes with PCGMaze data.
+ * @param CellVertices 
+ * @param CellsWidth 
+ * @param CellsHeight 
+ * @param ParentActor 
+ * @param MazeCells 
+ * @param MazeStartPosition 
+ * @param MazeEndPosition 
+ */
 void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 	const TArray<FVector>& CellVertices,
 	const int32 CellsWidth,
@@ -369,14 +379,6 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 	// Clear existing tracking arrays
 	RemoveAllNodes();
 
-	// int32 MidCellY = CellsHeight / 2;
-	//
-	// int32 StartCellX = 0;
-	// int32 StartCellY = MidCellY;
-	//
-	// int32 EndCellX = CellsWidth - 1;
-	// int32 EndCellY = MidCellY;
-	
 	// Starting positions for NPCs later
 	// EDIT: "Unreal Engine runs multiple worlds simultaneously in the editor:
 	// • Editor World (EWorldType::Editor): 
@@ -393,8 +395,8 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 	{
 		for (int32 column = 0; column < CellsWidth; ++column)
 		{
-			int32 Index = column + (row * CellsWidth);
-			// int32 Index = row + (column * CellsWidth);
+			int32 Index = column + (row * CellsWidth); // Matches maze grid
+			// int32 Index = row + (column * CellsWidth); // Flipped diagonally
 
 
 			if (!CellVertices.IsValidIndex(Index))
@@ -420,7 +422,7 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 			}
 			else
 			{
-				// Unable to spawn a node. ZheGeBuHao.
+				// Unable to spawn a node.
 				UE_LOG(LogTemp, Error,
 				       TEXT("UPathfindingSubsystem::MazePCGPlaceProceduralNodes Failed to spawn NavNode"));
 			}
@@ -433,8 +435,8 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 	{
 		for (int column = 0; column < CellsHeight; ++column)
 		{
-			int32 Index = column + (row * CellsWidth);
-			// int32 Index = row + (column * CellsWidth);
+			int32 Index = column + (row * CellsWidth); // Matches maze grid
+			// int32 Index = row + (column * CellsWidth); // Flipped diagonally
 
 			if (!CellVertices.IsValidIndex(Index)) continue;
 
@@ -454,41 +456,67 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 			const bool bAddEast = column < CellsHeight - 1;
 			const bool bAddWest = column > 0;
 
-			if (bAddNorth && !bIsWallNorth)
+
+			bool bShouldConnectNorth = bAddNorth && !bIsWallNorth;
+			bool bShouldConnectSouth = bAddSouth && !bIsWallSouth;
+			bool bShouldConnectEast = bAddEast && !bIsWallEast;
+			bool bShouldConnectWest = bAddWest && !bIsWallWest;
+
+
+			if (bShouldConnectNorth)
 			{
-				int32 NeighbourIndex = column + ((row + 1) * CellsWidth);
-				if (NavNodes.IsValidIndex(NeighbourIndex))
+				int32 NorthNeighbourIndex = column + ((row + 1) * CellsWidth);
+				if (NavNodes.IsValidIndex(NorthNeighbourIndex))
 				{
-					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+					CurrentNode->AddConnectedNode(NavNodes[NorthNeighbourIndex]);
 				}
 			}
 
-			if (bAddSouth && !bIsWallSouth)
+			if (bShouldConnectSouth)
 			{
-				int32 NeighbourIndex = column + ((row - 1) * CellsWidth);
-				if (NavNodes.IsValidIndex(NeighbourIndex))
+				int32 SouthNeighbourIndex = column + ((row - 1) * CellsWidth);
+				if (NavNodes.IsValidIndex(SouthNeighbourIndex))
 				{
-					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+					CurrentNode->AddConnectedNode(NavNodes[SouthNeighbourIndex]);
 				}
 			}
 
-			if (bAddEast && !bIsWallEast)
+			if (bShouldConnectEast)
 			{
-				int32 NeighbourIndex = (column + 1) + (row * CellsWidth);
-				if (NavNodes.IsValidIndex(NeighbourIndex))
+				int32 EastNeighbourIndex = (column + 1) + (row * CellsWidth);
+				if (NavNodes.IsValidIndex(EastNeighbourIndex))
 				{
-					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+					CurrentNode->AddConnectedNode(NavNodes[EastNeighbourIndex]);
 				}
 			}
 
-			if (bAddWest && !bIsWallWest)
+			if (bShouldConnectWest)
 			{
-				int32 NeighbourIndex = (column - 1) + (row * CellsWidth);
-				if (NavNodes.IsValidIndex(NeighbourIndex))
+				int32 WestNeighbourIndex = (column - 1) + (row * CellsWidth);
+				if (NavNodes.IsValidIndex(WestNeighbourIndex))
 				{
-					CurrentNode->AddConnectedNode(NavNodes[NeighbourIndex]);
+					CurrentNode->AddConnectedNode(NavNodes[WestNeighbourIndex]);
 				}
 			}
+
+
+			int32 ConnectedCount = CurrentNode->GetConnectedNodes().Num();
+
+			UE_LOG(
+				LogTemp,
+				Warning,
+				TEXT("UPathfindingSubsystem NavigationNode ConnectedCount: %d"),
+				ConnectedCount);
+
+
+			// Cardinal corners will be classified as junction
+			CurrentNode->bIsJunction =
+				(bShouldConnectEast || bShouldConnectWest)
+				&&
+				(bShouldConnectNorth || bShouldConnectSouth);
+
+			// Deadends with 1 or less connections
+			CurrentNode->bIsDeadend = ConnectedCount <= 1;
 		}
 	}
 }

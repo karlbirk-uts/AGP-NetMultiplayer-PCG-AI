@@ -57,7 +57,6 @@ protected:
 private:
 	ANavigationNode* GetRandomNode();
 
-	ANavigationNode* FindNearestNode(const FVector& TargetLocation);
 	ANavigationNode* FindFurthestNode(const FVector& TargetLocation);
 
 	TArray<FVector> GetPath(ANavigationNode* StartNode, ANavigationNode* EndNode);
@@ -65,4 +64,8 @@ private:
 	TArray<FVector> ReconstructPath(TMap<ANavigationNode*, FAStarNodeData*> NodeMap, const ANavigationNode* EndNode);
 
 	void DrawDebugPath(TArray<FVector> Path) const;
+	
+public:
+	ANavigationNode* FindNearestNode(const FVector& TargetLocation);
+
 };

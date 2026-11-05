@@ -1,19 +1,21 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+/**
+ * ANavigationNode
+ * @authors AGP subject coordinators, Karl Birk Student
+ */
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
-#include "Perception/AISense_Sight.h"
 #include "NavigationNode.generated.h"
 
-UCLASS()
+UCLASS(PrioritizeCategories="A4 Navigation")
 class AGP_API ANavigationNode : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
 	ANavigationNode();
 
@@ -21,38 +23,46 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
+
 	TArray<ANavigationNode*> GetConnectedNodes();
 	void AddConnectedNode(ANavigationNode* Node);
-	
-	
+
+
 	UFUNCTION(BlueprintPure, Category = "A4 Navigation")
 	bool IsBlocked() const { return bIsBlocked; }
-	
+
 protected:
 	UPROPERTY(EditAnywhere)
 	TArray<ANavigationNode*> ConnectedNodes;
-	
+
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent* LocationComponent;
-	
-	UPROPERTY(VisibleAnywhere)
-	UAIPerceptionStimuliSourceComponent* PerceptionSource;
-	
-	
-	
-	
-	// Testing with subsystem building all nodes pathways like before
+
+	// UPROPERTY(VisibleAnywhere)
+	// UAIPerceptionStimuliSourceComponent* PerceptionSource;
+
+
+public:
+	// Testing with subsystem building all nodes pathways like AGP labs
+	// but skipping nodes flagged as bIsBlocked==true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "A4 Navigation")
 	bool bIsBlocked = false;
 
-	UFUNCTION(BlueprintCallable, Category = "A4 Navigation")
-	void SetBlocked(bool bBlocked) { bIsBlocked = bBlocked; }
+	UPROPERTY(VisibleAnywhere, Category = "A4 Navigation")
+	bool bIsJunction = false;
 
+	UPROPERTY(VisibleAnywhere, Category = "A4 Navigation")
+	bool bIsDeadend = false;
 
+	UPROPERTY(VisibleAnywhere, Category = "A4 Navigation")
+	bool bIsMud = false;
 
+	UPROPERTY(VisibleAnywhere, Category = "A4 Navigation")
+	bool bIsDistraction = false;
 
+	UFUNCTION(BlueprintPure, Category = "A4 Navigation")
+	FVector GetLocationComponentTransform();
 };
