@@ -353,6 +353,7 @@ void AAgentCharacter::TickDoCurrentPlan5()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Action completed: %s. Applying outcomes."), *CurrentQueuedAction->UniqueName);
 
+		// Update AgentWorldState
 		for (const TPair<FString, bool>& ActionOutcome : CurrentQueuedAction->ActionOutcomes.StatesMap)
 		{
 			AgentWorldState.StatesMap.Emplace(ActionOutcome.Key, ActionOutcome.Value);
@@ -360,9 +361,9 @@ void AAgentCharacter::TickDoCurrentPlan5()
 
 		CurrentQueuedAction->bIsCompleted = false;
 		CurrentQueuedAction = nullptr;
-		
-		// Early exit breaks patrol state...
-		// return; // Halt execution for this frame to let world state settle
+
+		// Early exit breaks patrol state?
+		return;
 	}
 
 	// If queued action empty/null, try to fetch or build a new plan
@@ -415,18 +416,25 @@ void AAgentCharacter::TickDoCurrentPlan5()
 			else
 			{
 				// If no plan was found for ANY goal, fallback to Action_Wander
-				UE_LOG(LogTemp, VeryVerbose, TEXT("No viable GOAP plan found. Wandering."));
-				for (TObjectPtr<UAction> Action : AgentActions)
+				if (CurrentQueuedAction && CurrentQueuedAction->UniqueName == "Action_Wander")
 				{
-					if (Action && Action->UniqueName == "Action_Wander")
+					// The NPC is already wandering! Letting it keep its path.
+				}
+				else
+				{
+					UE_LOG(LogTemp, VeryVerbose, TEXT("No viable GOAP plan found. Wandering."));
+					for (TObjectPtr<UAction> Action : AgentActions)
 					{
-						UE_LOG(LogTemp, VeryVerbose, TEXT("NPC DEFAULT WANDER BEHAVIOUR CHANGED. BUHAO"));
+						if (Action && Action->UniqueName == "Action_Wander")
+						{
+							UE_LOG(LogTemp, VeryVerbose, TEXT("NPC DEFAULT WANDER BEHAVIOUR CHANGED. BUHAO"));
 
-						// THIS hack IGNORES whether this action's outcome had updated agentworldstate.
-						CurrentQueuedAction = Action;
-						CurrentQueuedAction->bIsCompleted = false;
-						AgentWorldState.StatesMap.Emplace(TEXT("bHasWandered"), false);
-						break;
+							// THIS hack IGNORES whether this action's outcome had updated agentworldstate.
+							CurrentQueuedAction = Action;
+							CurrentQueuedAction->bIsCompleted = false;
+							AgentWorldState.StatesMap.Emplace(TEXT("bHasWandered"), false);
+							break;
+						}
 					}
 				}
 			}
@@ -655,24 +663,34 @@ void AAgentCharacter::AgentTickPatrol(UAction* CurrentAgentAction)
 		{
 			CurrentNodesPath = PathfindingSubsystem->GetRandomPath(GetActorLocation());
 
-			UE_LOG(LogTemp, Warning, TEXT("AgentTickPatrol() GetRandomPath(GetActorLocation()"));
+			// UE_LOG(LogTemp, Warning, TEXT("AgentTickPatrol() GetRandomPath(GetActorLocation()"));
 
 			if (CurrentNodesPath.IsEmpty())
 			{
 				CurrentAgentAction->bIsCompleted = true;
 				return;
 			}
+			
+			
+			StuckTimer = 0.0f; 
+			LastCheckedLocation = GetActorLocation();
 
-			UE_LOG(LogTemp, Warning, TEXT("CurrentNodesPath generated."));
+			
+
+			// UE_LOG(LogTemp, Warning, TEXT("CurrentNodesPath generated."));
+			UE_LOG(LogTemp, Warning, TEXT("Generated CurrentNodesPath; CurrentNodesPath[0]: %s"),
+			       *CurrentNodesPath[0].ToString());
 		}
 		else
 		{
 			// CurrentNodesPath bountiful
 			// for (FVector currentNodeLoc : CurrentNodesPath)
-			for (int32 i = 0; i < CurrentNodesPath.Num(); ++i)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("CurrentNodesPath[%d]: %s"), i,*CurrentNodesPath[i].ToString());
-			}
+			// for (int32 i = 0; i < CurrentNodesPath.Num(); ++i)
+			// {
+			// 	UE_LOG(LogTemp, Warning, TEXT("Have CurrentNodesPath; CurrentNodesPath[%d]: %s"), i,*CurrentNodesPath[i].ToString());
+			// }
+			// UE_LOG(LogTemp, Warning, TEXT("Have CurrentNodesPath; CurrentNodesPath[0]: %s"),
+			//        *CurrentNodesPath[0].ToString());
 		}
 
 
@@ -682,7 +700,6 @@ void AAgentCharacter::AgentTickPatrol(UAction* CurrentAgentAction)
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AAgentCharacter::AgentTickPatrol PathfindingSubsystem not found"));
-
 	}
 
 
@@ -701,7 +718,7 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 
 
 	// Unstuck code - NPC cutting corners and getting stuck (hasn't moved more than 10cm)
-	if (FVector::DistSquared(GetActorLocation(), LastCheckedLocation) < 100.0f) // Hard matching 10cm movement
+	if (FVector::DistSquared(GetActorLocation(), LastCheckedLocation) < 50.0f) // Hard matching 5cm movement
 	{
 		StuckTimer += GetWorld()->GetDeltaSeconds();
 		if (StuckTimer > 3.0f) // Stuck for 2 seconds
@@ -718,10 +735,7 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 		StuckTimer = 0.0f;
 	}
 
-	
-	
-	
-	
+
 	FVector NextLocation = CurrentNodesPath[0];
 	FVector NPCLocation = GetActorLocation();
 
@@ -730,7 +744,7 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 
 	FVector Direction = NextLocationXY - NPCLocationXY;
 	Direction.Normalize();
-	AddMovementInput(Direction, 0.5f);
+	AddMovementInput(Direction, 1.0f);
 
 	// float MazePathingLocationThreshold = 160.0f; // 3D distance
 	float MazePathingLocationThreshold = 110.0f; // 2D distance;
@@ -738,6 +752,8 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 	if (FVector::DistSquared(NextLocationXY, NPCLocationXY) <=
 		(MazePathingLocationThreshold * MazePathingLocationThreshold))
 	{
+		LastCheckedLocation = NPCLocation;
+		StuckTimer = 0.0f;
 
 		CurrentNodesPath.RemoveAt(0);
 		UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentNodesPath.RemoveAt(0);"));
@@ -747,12 +763,7 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 			CurrentAgentAction->bIsCompleted = true;
 			UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAction->bIsCompleted = true;"));
 		}
-		
-		
 	}
-	
-	
-
 }
 
 
