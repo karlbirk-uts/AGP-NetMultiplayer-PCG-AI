@@ -246,6 +246,8 @@ void AAgentCharacter::TickDoCurrentPlan5()
 				ActionOutcome.Key == TEXT("bHasMovedEast") ||
 				ActionOutcome.Key == TEXT("bHasMovedWest"))
 			{
+				UE_LOG(LogTemp, Warning, TEXT("TickDoCurrentPlan5 Set to false again for key: %s"), *ActionOutcome.Key);
+
 				AgentWorldState
 					.StatesMap
 					.Emplace(ActionOutcome.Key, false);
@@ -1221,6 +1223,7 @@ void AAgentCharacter::AgentTickMoveNorth(UAction* CurrentAgentAction)
 			if (CurrentNodesPath.IsEmpty())
 			{
 				// THIS SPACE IS NEVER CALLED IF NPC BEHAVING
+				UE_LOG(LogTemp, Warning, TEXT("AAgentCharacter::AgentTickMoveNorth THIS SPACE IS NEVER CALLED IF NPC BEHAVING"));
 
 				RefreshCardinalPathWorldStates();
 
