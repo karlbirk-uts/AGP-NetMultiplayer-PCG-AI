@@ -78,7 +78,7 @@ private:
 	// Helper implementation
 	bool MoveTowards(const FVector& Location);
 
-	void SortGoalsDescendingPriority();
+	void SortGoalsAscendingPriority();
 
 protected:
 	void TickDoActionImplementation(TObjectPtr<UAction> Action);
@@ -136,8 +136,8 @@ private:
 	// Maze movement required some NPC movement tweaking
 	FVector LastCheckedLocation;
 	float StuckTimer = 0.0f;
-	
-	
+
+
 	ANavigationNode* GetNorthCellNavigationNode();
 	ANavigationNode* GetSouthCellNavigationNode();
 	ANavigationNode* GetEastCellNavigationNode();
@@ -148,8 +148,28 @@ private:
 	void AgentTickMoveEast(UAction* CurrentAgentAction);
 	void AgentTickMoveWest(UAction* CurrentAgentAction);
 	void RefreshCardinalPathWorldStates();
-	void ReachedEndOfMaze();
+	void CheckReachedEndOfMaze();
 	ANavigationNode* GetNearestNavigationNode();
+
+	const FString State_bHasWandered = "bHasWandered";
+	const FString State_bHasReached_StartOfMaze = "bHasReachedStartOfMaze";
+	const FString State_bHasReached_EndOfMaze = "bHasReachedEndOfMaze";
+	const FString State_bHasMovedVertically = "bHasMovedVertically";
+	const FString State_bHasMovedLaterally = "bHasMovedLaterally";
+	const FString State_bHasPathNorth = "bHasPathNorth";
+	const FString State_bHasPathSouth = "bHasPathSouth";
+	const FString State_bHasPathEast = "bHasPathEast";
+	const FString State_bHasPathWest = "bHasPathWest";
+
+	
+	const FString Action_Wander = "Action_Wander";
+	const FString Action_MoveTowards_StartOfMaze = "Action_MoveTowards_StartOfMaze";
+	const FString Action_MoveTowards_North = "Action_MoveTowards_North";
+	const FString Action_MoveTowards_South = "Action_MoveTowards_South";
+	const FString Action_MoveTowards_East = "Action_MoveTowards_East";
+	const FString Action_MoveTowards_West = "Action_MoveTowards_West";
+
+	
 };
 
 struct FAgentPlannerNode

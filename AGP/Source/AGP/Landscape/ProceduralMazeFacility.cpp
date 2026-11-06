@@ -479,7 +479,6 @@ FVector AProceduralMazeFacility::GetMazeStartCellWorldPosition()
 	FVector MazeStartPosition = GetCellWorldPosition(StartCellX, StartCellY);
 	
 	UE_LOG(LogTemp, Warning, TEXT("AProceduralMazeFacility MazeStartPosition %s"), *MazeStartPosition.ToString());
-
 	
 	return MazeStartPosition;
 }

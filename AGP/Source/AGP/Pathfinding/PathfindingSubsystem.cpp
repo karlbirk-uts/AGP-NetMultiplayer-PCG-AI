@@ -508,11 +508,11 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 
 			int32 ConnectedCount = CurrentNode->GetConnectedNodes().Num();
 
-			UE_LOG(
-				LogTemp,
-				Warning,
-				TEXT("UPathfindingSubsystem NavigationNode ConnectedCount: %d"),
-				ConnectedCount);
+			// UE_LOG(
+			// 	LogTemp,
+			// 	Warning,
+			// 	TEXT("UPathfindingSubsystem NavigationNode ConnectedCount: %d"),
+			// 	ConnectedCount);
 
 
 			// Cardinal corners will be classified as junction
