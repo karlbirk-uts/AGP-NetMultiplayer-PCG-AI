@@ -38,8 +38,8 @@ protected:
 	UPROPERTY(EditAnywhere)
 	TArray<ANavigationNode*> ConnectedNodes;
 
-	UPROPERTY(VisibleAnywhere)
-	USceneComponent* LocationComponent;
+	// UPROPERTY(VisibleAnywhere)
+	// USceneComponent* LocationComponent;
 
 	// UPROPERTY(VisibleAnywhere)
 	// UAIPerceptionStimuliSourceComponent* PerceptionSource;
@@ -65,4 +65,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "A4 Navigation")
 	FVector GetLocationComponentTransform();
+	
+	UPROPERTY(VisibleAnywhere)
+	USceneComponent* LocationComponent;
 };

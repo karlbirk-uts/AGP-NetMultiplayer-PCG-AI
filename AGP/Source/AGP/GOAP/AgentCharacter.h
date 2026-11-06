@@ -9,6 +9,7 @@
 #include "DrawDebugHelpers.h"
 #include "Action.h"
 #include "../Characters/EnemyCharacter.h"
+#include "AGP/Pathfinding/NavigationNode.h"
 #include "Components/WidgetComponent.h"
 #include "AgentCharacter.generated.h"
 
@@ -134,8 +135,18 @@ private:
 	// Maze movement required some NPC movement tweaking
 	FVector LastCheckedLocation;
 	float StuckTimer = 0.0f;
+	
+	
+	ANavigationNode* GetNorthCellNavigationNode();
+	ANavigationNode* GetSouthCellNavigationNode();
+	ANavigationNode* GetEastCellNavigationNode();
+	ANavigationNode* GetWestCellNavigationNode();
+	void AgentTickMoveNorth(UAction* CurrentAgentAction);
+	void AgentTickMoveSouth(UAction* CurrentAgentAction);
+	void AgentTickMoveEast(UAction* CurrentAgentAction);
+	void AgentTickMoveWest(UAction* CurrentAgentAction);
+	void RefreshCardinalPathWorldStates();
 };
-
 
 struct FAgentPlannerNode
 {
