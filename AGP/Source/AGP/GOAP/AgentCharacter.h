@@ -141,6 +141,7 @@ private:
 	ANavigationNode* GetSouthCellNavigationNode();
 	ANavigationNode* GetEastCellNavigationNode();
 	ANavigationNode* GetWestCellNavigationNode();
+	void AgentTickMoveToMazeStart(UAction* CurrentAgentAction);
 	void AgentTickMoveNorth(UAction* CurrentAgentAction);
 	void AgentTickMoveSouth(UAction* CurrentAgentAction);
 	void AgentTickMoveEast(UAction* CurrentAgentAction);
