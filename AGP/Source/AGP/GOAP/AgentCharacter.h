@@ -149,6 +149,7 @@ private:
 	void AgentTickMoveWest(UAction* CurrentAgentAction);
 	void RefreshCardinalPathWorldStates();
 	void ReachedEndOfMaze();
+	ANavigationNode* GetNearestNavigationNode();
 };
 
 struct FAgentPlannerNode

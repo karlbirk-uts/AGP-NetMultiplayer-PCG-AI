@@ -36,6 +36,12 @@ TArray<FVector> UPathfindingSubsystem::GetPath(const FVector& StartLocation, con
 	return GetPath(FindNearestNode(StartLocation), FindNearestNode(TargetLocation));
 }
 
+TArray<FVector> UPathfindingSubsystem::MazeGetPath(const FVector& StartLocation, const FVector& TargetLocation)
+{
+	return MazeGetPath(FindNearestNode(StartLocation), FindNearestNode(TargetLocation));
+}
+
+
 
 TArray<FVector> UPathfindingSubsystem::GetPathAway(const FVector& StartLocation, const FVector& TargetLocation)
 {
@@ -519,4 +525,82 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 			CurrentNode->bIsDeadend = ConnectedCount <= 1;
 		}
 	}
+}
+
+
+// Reducing desire to revisit same navigation nodes
+TArray<FVector> UPathfindingSubsystem::MazeGetPath(ANavigationNode* StartNode, ANavigationNode* EndNode) {
+    if (!StartNode || !EndNode) {
+        return TArray<FVector>();
+    }
+
+    TArray<ANavigationNode*> OpenSet;
+    TMap<ANavigationNode*, FAStarNodeData*> NodeMap;
+
+    for (ANavigationNode* Node : NavNodes) {
+        if (!Node) continue;
+        NodeMap.Add(Node, new FAStarNodeData());
+    }
+
+    if (!NodeMap.Contains(StartNode) || !NodeMap.Contains(EndNode)) {
+        return TArray<FVector>();
+    }
+
+    NodeMap[StartNode]->GScore = 0;
+    NodeMap[StartNode]->HScore = FVector::DistSquared(StartNode->GetActorLocation(), EndNode->GetActorLocation());
+    OpenSet.Add(StartNode);
+
+    while (!OpenSet.IsEmpty()) {
+        float LowestFScore = FLT_MAX;
+        ANavigationNode* CurrentNode = nullptr;
+
+        for (ANavigationNode* Node : OpenSet) {
+            if (!Node) continue;
+            if (NodeMap[Node]->GetFScore() < LowestFScore) {
+                LowestFScore = NodeMap[Node]->GetFScore();
+                CurrentNode = Node;
+            }
+        }
+
+        if (!CurrentNode) {
+            UE_LOG(LogTemp, Error, TEXT("No valid current node found in non-empty open set."))
+            return TArray<FVector>();
+        }
+
+        OpenSet.Remove(CurrentNode);
+
+        if (CurrentNode == EndNode) {
+            return ReconstructPath(NodeMap, EndNode);
+        }
+
+        for (ANavigationNode* ConnectedNode : CurrentNode->GetConnectedNodes()) {
+            if (!ConnectedNode) continue;
+            if (ConnectedNode->IsBlocked() || CurrentNode->IsBlocked()) continue;
+
+            // Calculate the base distance cost (using DistSquared to match your implementation)
+            float DistanceCost = FVector::DistSquared(CurrentNode->GetActorLocation(), ConnectedNode->GetActorLocation());
+
+            // NPC traffic penalty
+            // Adjust the multiplier (e.g., 10000.f) depending on how strongly you want to avoid NPCs.
+            // Note: Since you use DistSquared, your physical distance costs are very large numbers. 
+            // Your penalty must be proportionally large to have a noticeable impact.
+            float TrafficPenalty = ConnectedNode->NPCVisitedCounter * 100000.f; 
+
+            // 3. Combine them into the final cost for this step
+            const float TentativeConnectedNodeGScore = NodeMap[CurrentNode]->GScore + DistanceCost + TrafficPenalty;
+
+            if (TentativeConnectedNodeGScore < NodeMap[ConnectedNode]->GScore) {
+                NodeMap[ConnectedNode]->ParentNode = CurrentNode;
+                NodeMap[ConnectedNode]->GScore = TentativeConnectedNodeGScore;
+                NodeMap[ConnectedNode]->HScore = FVector::DistSquared(ConnectedNode->GetActorLocation(), EndNode->GetActorLocation());
+
+                if (!OpenSet.Contains(ConnectedNode)) {
+                    OpenSet.Add(ConnectedNode);
+                }
+            }
+        }
+    }
+
+    UE_LOG(LogTemp, Error, TEXT("No valid path found!"))
+    return TArray<FVector>();
 }

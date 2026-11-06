@@ -25,6 +25,7 @@ public:
 	TArray<FVector> GetRandomPath(const FVector& StartLocation);
 
 	TArray<FVector> GetPath(const FVector& StartLocation, const FVector& TargetLocation);
+	TArray<FVector> MazeGetPath(const FVector& StartLocation, const FVector& TargetLocation);
 
 	TArray<FVector> GetPathAway(const FVector& StartLocation, const FVector& TargetLocation);
 
@@ -42,6 +43,7 @@ public:
 		const TArray<TArray<FMazeCell>>& MazeCells,
 		const FVector& MazeStartPosition,
 		const FVector& MazeEndPosition);
+	TArray<FVector> MazeGetPath(ANavigationNode* StartNode, ANavigationNode* EndNode);
 
 
 	TArray<FVector> GetWaypointPositions();

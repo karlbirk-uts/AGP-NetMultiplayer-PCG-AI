@@ -233,15 +233,18 @@ void AAgentCharacter::TickDoCurrentPlan5()
 		// Update AgentWorldState
 		for (const TPair<FString, bool>& ActionOutcome : CurrentQueuedAction->ActionOutcomes.StatesMap)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("TickDoCurrentPlan5 ActionOutcome.Key: %s"), *ActionOutcome.Key);
+
+
 			// For permanent goal completion like bHasReachedStartOfMaze
 			AgentWorldState.StatesMap.Emplace(ActionOutcome.Key, ActionOutcome.Value);
 
 			// For north, east, south, west movement goals, reset to false
 			// immediately allow for new planning.
-			if (ActionOutcome.Key == FString("bHasMovedNorth") ||
-				ActionOutcome.Key == FString("bHasMovedSouth") ||
-				ActionOutcome.Key == FString("bHasMovedEast") ||
-				ActionOutcome.Key == FString("bHasMovedWest"))
+			if (ActionOutcome.Key == TEXT("bHasMovedNorth") ||
+				ActionOutcome.Key == TEXT("bHasMovedSouth") ||
+				ActionOutcome.Key == TEXT("bHasMovedEast") ||
+				ActionOutcome.Key == TEXT("bHasMovedWest"))
 			{
 				AgentWorldState
 					.StatesMap
@@ -617,6 +620,7 @@ void AAgentCharacter::AgentTickPatrol(UAction* CurrentAgentAction)
 	AgentMoveAlongPath(CurrentAgentAction);
 }
 
+// ALL NPC movement comes through this method
 void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 {
 	if (CurrentNodesPath.IsEmpty())
@@ -646,7 +650,6 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 		StuckTimer = 0.0f;
 	}
 
-
 	FVector NextLocation = CurrentNodesPath[0];
 	FVector NPCLocation = GetActorLocation();
 
@@ -666,8 +669,14 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 		LastCheckedLocation = NPCLocation;
 		StuckTimer = 0.0f;
 
+		// EDIT: Moved to NavNode
+		// EDIT: Moved back to AAgentCharacter because collider broke NavNode's USceneComponent
+		// Updating a NavigationNode's visits counter
+		GetNearestNavigationNode()->NPCVisitedCounter++;
+
 		CurrentNodesPath.RemoveAt(0);
 		// UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentNodesPath.RemoveAt(0);"));
+
 
 		if (CurrentNodesPath.IsEmpty())
 		{
@@ -1125,13 +1134,17 @@ void AAgentCharacter::AgentTickMoveToMazeStart(UAction* CurrentAgentAction)
 			       TEXT("AAgentCharacter::AgentTickMoveToMazeStart() CurrentNodesPath.IsEmpty() == true"));
 
 			// CurrentNodesPath = PathfindingSubsystem->GetRandomPath(GetActorLocation());
+			// CurrentNodesPath = PathfindingSubsystem->
+			// 	GetPath(
+			// 		GetActorLocation(),
+			// 		StartOfMaze);
 			CurrentNodesPath = PathfindingSubsystem->
-				GetPath(
+				MazeGetPath(
 					GetActorLocation(),
 					StartOfMaze);
 
 
-			UE_LOG(LogTemp, Warning, TEXT("AgentTickMoveToMazeStart() GetPath(GetActorLocation()"));
+			UE_LOG(LogTemp, Warning, TEXT("AgentTickMoveToMazeStart() MazeGetPath(GetActorLocation()"));
 
 			if (CurrentNodesPath.IsEmpty())
 			{
@@ -1194,13 +1207,16 @@ void AAgentCharacter::AgentTickMoveNorth(UAction* CurrentAgentAction)
 			UE_LOG(LogTemp, Warning, TEXT("AAgentCharacter::AgentTickMoveNorth() CurrentNodesPath.IsEmpty() == true"));
 
 			// CurrentNodesPath = PathfindingSubsystem->GetRandomPath(GetActorLocation());
+			// CurrentNodesPath = PathfindingSubsystem->
+			// 	GetPath(
+			// 		GetActorLocation(),
+			// 		DestinationLocation);
 			CurrentNodesPath = PathfindingSubsystem->
-				GetPath(
+				MazeGetPath(
 					GetActorLocation(),
 					DestinationLocation);
 
-
-			UE_LOG(LogTemp, Warning, TEXT("AgentTickMoveNorth() GetPath(GetActorLocation()"));
+			UE_LOG(LogTemp, Warning, TEXT("AgentTickMoveNorth() MazeGetPath(GetActorLocation()"));
 
 			if (CurrentNodesPath.IsEmpty())
 			{
@@ -1263,12 +1279,12 @@ void AAgentCharacter::AgentTickMoveSouth(UAction* CurrentAgentAction)
 			UE_LOG(LogTemp, Warning, TEXT("AAgentCharacter::AgentTickMoveSouth() CurrentNodesPath.IsEmpty() == true"));
 
 			CurrentNodesPath = PathfindingSubsystem->
-				GetPath(
+				MazeGetPath(
 					GetActorLocation(),
 					DestinationLocation);
 
 
-			UE_LOG(LogTemp, Warning, TEXT("AgentTickMoveSouth() GetPath(GetActorLocation()"));
+			UE_LOG(LogTemp, Warning, TEXT("AgentTickMoveSouth() MazeGetPath(GetActorLocation()"));
 
 			if (CurrentNodesPath.IsEmpty())
 			{
@@ -1331,12 +1347,12 @@ void AAgentCharacter::AgentTickMoveEast(UAction* CurrentAgentAction)
 			UE_LOG(LogTemp, Warning, TEXT("AAgentCharacter::AgentTickMoveEast() CurrentNodesPath.IsEmpty() == true"));
 
 			CurrentNodesPath = PathfindingSubsystem->
-				GetPath(
+				MazeGetPath(
 					GetActorLocation(),
 					DestinationLocation);
 
 
-			UE_LOG(LogTemp, Warning, TEXT("AgentTickMoveEast() GetPath(GetActorLocation()"));
+			UE_LOG(LogTemp, Warning, TEXT("AgentTickMoveEast() MazeGetPath(GetActorLocation()"));
 
 			if (CurrentNodesPath.IsEmpty())
 			{
@@ -1399,12 +1415,12 @@ void AAgentCharacter::AgentTickMoveWest(UAction* CurrentAgentAction)
 			UE_LOG(LogTemp, Warning, TEXT("AgentTickMoveWest() CurrentNodesPath.IsEmpty() == true"));
 
 			CurrentNodesPath = PathfindingSubsystem->
-				GetPath(
+				MazeGetPath(
 					GetActorLocation(),
 					DestinationLocation);
 
 
-			UE_LOG(LogTemp, Warning, TEXT("AgentTickMoveWest() GetPath(GetActorLocation())"));
+			UE_LOG(LogTemp, Warning, TEXT("AgentTickMoveWest() MazeGetPath(GetActorLocation())"));
 
 			if (CurrentNodesPath.IsEmpty())
 			{
@@ -1473,6 +1489,7 @@ void AAgentCharacter::RefreshCardinalPathWorldStates()
 				       TEXT("RefreshCardinalPathWorldStates NearestNode->GetConnectedNodes().Num(): %d"),
 				       NearestNode->GetConnectedNodes().Num());
 
+
 				for (int32 i = 0; i < NearestNode->GetConnectedNodes().Num(); ++i)
 				{
 					ANavigationNode* NeighbourNode = NearestNode->GetConnectedNodes()[i];
@@ -1491,6 +1508,12 @@ void AAgentCharacter::RefreshCardinalPathWorldStates()
 					       TEXT("RefreshCardinalPathWorldStates DistanceY: %f"),
 					       DistanceY);
 
+					UE_LOG(LogTemp, Warning, TEXT("Nearest [%s] Location: %s"),
+					       *NearestNode->GetName(), *NearestNode->LocationComponent->GetComponentLocation().ToString());
+
+					UE_LOG(LogTemp, Warning, TEXT("Neighbour [%s] Location: %s"),
+					       *NeighbourNode->GetName(),
+					       *NeighbourNode->LocationComponent->GetComponentLocation().ToString());
 
 					bool bHasPathNorth = DistanceX > CellDistanceThreshold;
 					bool bHasPathSouth = -DistanceX > CellDistanceThreshold;
@@ -1526,6 +1549,9 @@ void AAgentCharacter::RefreshCardinalPathWorldStates()
 					if (!(bHasPathNorth || bHasPathSouth || bHasPathEast || bHasPathWest))
 					{
 						UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathNESW == false"));
+						UE_LOG(LogTemp, Warning,
+						       TEXT("RefreshCardinalPathWorldStates NearestNode->GetConnectedNodes().Num(): %d"),
+						       NearestNode->GetConnectedNodes().Num());
 					}
 				}
 			}
@@ -1558,4 +1584,20 @@ void AAgentCharacter::ReachedEndOfMaze()
 		bHasReachedEndOfMaze = true;
 		UE_LOG(LogTemp, Warning, TEXT("NPC REACHED END OF MAZE"));
 	}
+}
+
+
+ANavigationNode* AAgentCharacter::GetNearestNavigationNode()
+{
+	ANavigationNode* NearestNavigationNode = nullptr;
+
+	if (PathfindingSubsystem)
+	{
+		ANavigationNode* NearestNode = PathfindingSubsystem->FindNearestNode(GetActorLocation());
+		if (NearestNode)
+		{
+			NearestNavigationNode = NearestNode;
+		}
+	}
+	return NearestNavigationNode;
 }

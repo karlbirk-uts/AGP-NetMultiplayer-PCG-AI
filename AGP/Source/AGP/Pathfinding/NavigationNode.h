@@ -6,6 +6,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "NavigationNode.generated.h"
@@ -68,4 +69,18 @@ public:
 	
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent* LocationComponent;
+	
+	
+	// // The trigger zone (1 meter = 100 Unreal Units radius)
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	// USphereComponent* TriggerSphere;
+	//
+	// Counter to track how many times an NPC visited
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Analytics")
+	int32 NPCVisitedCounter;
+	//
+	// // Function that triggers when something overlaps the sphere
+	// UFUNCTION()
+	// void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
 };

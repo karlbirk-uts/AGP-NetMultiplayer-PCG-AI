@@ -1,3 +1,4 @@
+// ReSharper disable CppTooWideScope
 #include "NavigationNode.h"
 
 // Sets default values
@@ -15,6 +16,24 @@ ANavigationNode::ANavigationNode()
 	}
 
 	// PerceptionSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>("Perception Source");
+	
+
+	
+	
+	// NPCVisitedCounter = 0;
+
+	
+	// SECOND ROOT COMPONENT BREAKS THE COORDS FOR OTHER CODE...
+	// Create the sphere component
+	// TriggerSphere = CreateDefaultSubobject<USphereComponent>(TEXT("TriggerSphere"));
+	// RootComponent = TriggerSphere;
+	//
+	// // Set radius to 1 meter (100 UU)
+	// TriggerSphere->SetSphereRadius(100.0f);
+	//
+	// // Configure collision settings to look for Pawns
+	// TriggerSphere->SetCollisionProfileName(TEXT("Trigger"));
+
 }
 
 // Called when the game starts or when spawned
@@ -94,6 +113,12 @@ void ANavigationNode::BeginPlay()
 			0,
 			LineThickness);
 	}
+	
+	
+	
+	// Bind the overlap function
+	// TriggerSphere->OnComponentBeginOverlap.AddDynamic(this, &ANavigationNode::OnOverlapBegin);
+
 }
 
 // Called every frame
@@ -120,3 +145,20 @@ FVector ANavigationNode::GetLocationComponentTransform()
 {
 	return LocationComponent->GetComponentLocation();
 }
+
+// void ANavigationNode::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+// 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+// {
+// 	if (OtherActor && OtherActor != this)
+// 	{
+// 		// Check if the overlapping actor is a Pawn (or cast to your specific AAgentCharacter)
+// 		APawn* OverlappingPawn = Cast<APawn>(OtherActor);
+// 		if (OverlappingPawn)
+// 		{
+// 			NPCVisitedCounter++;
+//             
+// 			// Optional debug message to verify it works
+// 			// UE_LOG(LogTemp, Warning, TEXT("%s visited! Counter: %d"), *OtherActor->GetName(), NPCVisitedCounter);
+// 		}
+// 	}
+// }
