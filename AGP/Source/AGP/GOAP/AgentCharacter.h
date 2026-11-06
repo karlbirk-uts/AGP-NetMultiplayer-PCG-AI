@@ -131,6 +131,7 @@ private:
 	FVector StartOfMaze;
 	FVector EndOfMaze;
 
+	bool bHasReachedEndOfMaze = false;
 
 	// Maze movement required some NPC movement tweaking
 	FVector LastCheckedLocation;
@@ -147,6 +148,7 @@ private:
 	void AgentTickMoveEast(UAction* CurrentAgentAction);
 	void AgentTickMoveWest(UAction* CurrentAgentAction);
 	void RefreshCardinalPathWorldStates();
+	void ReachedEndOfMaze();
 };
 
 struct FAgentPlannerNode
