@@ -225,7 +225,7 @@ void AAgentCharacter::SortGoalsDescendingPriority()
 
 void AAgentCharacter::TickDoCurrentPlan5()
 {
-	// ACTION looks to have completed, updating AgentWorldState
+	// ACTION->bIsCompleted true, updating AgentWorldState
 	if (CurrentQueuedAction && CurrentQueuedAction->bIsCompleted)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Action completed: %s. Applying outcomes."), *CurrentQueuedAction->UniqueName);
@@ -238,20 +238,23 @@ void AAgentCharacter::TickDoCurrentPlan5()
 
 			// For permanent goal completion like bHasReachedStartOfMaze
 			AgentWorldState.StatesMap.Emplace(ActionOutcome.Key, ActionOutcome.Value);
+			
+			// Trying new pseudocode. This now toggles off some worldstates
+			
 
 			// For north, east, south, west movement goals, reset to false
 			// immediately allow for new planning.
-			if (ActionOutcome.Key == TEXT("bHasMovedNorth") ||
-				ActionOutcome.Key == TEXT("bHasMovedSouth") ||
-				ActionOutcome.Key == TEXT("bHasMovedEast") ||
-				ActionOutcome.Key == TEXT("bHasMovedWest"))
-			{
-				UE_LOG(LogTemp, Warning, TEXT("TickDoCurrentPlan5 Set to false again for key: %s"), *ActionOutcome.Key);
+			// if (ActionOutcome.Key == TEXT("bHasMovedNorth") ||
+			// 	ActionOutcome.Key == TEXT("bHasMovedSouth") ||
+			// 	ActionOutcome.Key == TEXT("bHasMovedEast") ||
+			// 	ActionOutcome.Key == TEXT("bHasMovedWest"))
+			// {
+			// 	UE_LOG(LogTemp, Warning, TEXT("TickDoCurrentPlan5 Set to false again for key: %s"), *ActionOutcome.Key);
+			//
+			// 	AgentWorldState.StatesMap.Emplace(ActionOutcome.Key, false);
+			// }
 
-				AgentWorldState
-					.StatesMap
-					.Emplace(ActionOutcome.Key, false);
-			}
+			RefreshCardinalPathWorldStates();
 		}
 
 		CurrentQueuedAction->bIsCompleted = false;
@@ -261,6 +264,56 @@ void AAgentCharacter::TickDoCurrentPlan5()
 		return;
 	}
 
+	
+	// Updating actioncosts for NESW movement
+	// ANavigationNode* Current = GetNearestNavigationNode();
+	ANavigationNode* North = GetNorthCellNavigationNode();
+	ANavigationNode* South = GetSouthCellNavigationNode();
+	ANavigationNode* East = GetEastCellNavigationNode();
+	ANavigationNode* West = GetWestCellNavigationNode();
+	for (UAction* Action: AgentActions)
+	{
+		if (!Action) continue;
+		if (Action->UniqueName == "Action_MoveTowards_North")
+		{
+			// Action->ActionCost = North->NPCVisitedCounter;
+
+			// Magnifying - trying new pseudocode
+			Action->ActionCost = North->NPCVisitedCounter * 2.0f;
+			// UE_LOG(LogTemp,Warning,TEXT("North->NPCVisitedCounter: %d"), North->NPCVisitedCounter);
+		}
+		else if (Action->UniqueName == "Action_MoveTowards_South")
+		{
+			// Action->ActionCost = South->NPCVisitedCounter;
+
+			// Magnifying - trying new pseudocode
+			Action->ActionCost = South->NPCVisitedCounter * 2.0f;
+			// UE_LOG(LogTemp,Warning,TEXT("South->NPCVisitedCounter: %d"), South->NPCVisitedCounter);
+		}
+		else if (Action->UniqueName == "Action_MoveTowards_East")
+		{
+			// Action->ActionCost = East->NPCVisitedCounter;
+
+			// Magnifying - trying new pseudocode
+			Action->ActionCost = East->NPCVisitedCounter * 5.0f;
+			// UE_LOG(LogTemp,Warning,TEXT("East->NPCVisitedCounter: %d"), East->NPCVisitedCounter);
+		}
+		else if (Action->UniqueName == "Action_MoveTowards_West")
+		{
+			// Action->ActionCost = West->NPCVisitedCounter;
+
+			// Magnifying - trying new pseudocode
+			Action->ActionCost = West->NPCVisitedCounter * 5.0f;
+			// UE_LOG(LogTemp,Warning,TEXT("West->NPCVisitedCounter: %d"), West->NPCVisitedCounter);
+
+			// if (West->NPCVisitedCounter > 5)
+			// {
+			// 	// AgentWorldState.StatesMap.Emplace(TEXT("bShouldTryWestRepeatedly"), false);
+			// }
+		}
+	}
+
+	
 	// If queued action empty/null, try to fetch or build a new plan
 	if (CurrentQueuedAction == nullptr)
 	{
@@ -293,6 +346,19 @@ void AAgentCharacter::TickDoCurrentPlan5()
 				if (AgentCurrentPlan.Num() > 0)
 				{
 					UE_LOG(LogTemp, Warning, TEXT("NPC successfully formed a new plan for goal!"));
+
+					if (Goal->GoalWorldState.StatesMap.Num() > 0)
+					{
+						for (const TPair<FString, bool>& Pair : Goal->GoalWorldState.StatesMap)
+						{
+							// Log the key (dereferenced with * because it's an FString)
+							UE_LOG(LogTemp, Log, TEXT("PLAN looking to meet Goal key: %s"), *Pair.Key);
+
+							break; // Stop immediately after the first element
+						}
+					}
+
+
 					for (const UAction* Action : AgentCurrentPlan)
 					{
 						UE_LOG(LogTemp, Warning, TEXT(" -> Plan Step: %s"), *Action->UniqueName);
@@ -567,7 +633,7 @@ void AAgentCharacter::AgentTickPatrol(UAction* CurrentAgentAction)
 				// THIS SPACE IS NEVER CALLED IF NPC BEHAVING
 
 
-				RefreshCardinalPathWorldStates();
+				// RefreshCardinalPathWorldStates();
 				CurrentAgentAction->bIsCompleted = true;
 				return;
 			}
@@ -682,7 +748,7 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 
 		if (CurrentNodesPath.IsEmpty())
 		{
-			RefreshCardinalPathWorldStates();
+			// RefreshCardinalPathWorldStates();
 
 			CurrentAgentAction->bIsCompleted = true;
 			UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAction->bIsCompleted = true;"));
@@ -693,6 +759,7 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 
 void AAgentCharacter::InitPCGMazeGoals()
 {
+	// Start of Maze
 	AgentWorldState.StatesMap.Add(TEXT("bHasReachedStartOfMaze"), false);
 
 	TObjectPtr<UGoal> GoalBeAtStartOfMaze = NewObject<UGoal>(this);
@@ -707,72 +774,119 @@ void AAgentCharacter::InitPCGMazeGoals()
 	ActionMoveTowardsStartOfMaze->ActionPrereqs.StatesMap.Empty();
 	AgentActions.Add(ActionMoveTowardsStartOfMaze);
 
+	
+	AgentWorldState.StatesMap.Add(TEXT("bHasReachedEndOfMaze"), false);
 
-	AgentWorldState.StatesMap.Add(TEXT("bHasMovedNorth"), false);
-	AgentWorldState.StatesMap.Add(TEXT("bHasMovedSouth"), false);
-	AgentWorldState.StatesMap.Add(TEXT("bHasMovedEast"), false);
-	AgentWorldState.StatesMap.Add(TEXT("bHasMovedWest"), false);
+	
 
+	AgentWorldState.StatesMap.Add(TEXT("bHasMovedVertically"), false);
+	AgentWorldState.StatesMap.Add(TEXT("bHasMovedLaterally"), false);
 
 	AgentWorldState.StatesMap.Add(TEXT("bHasPathNorth"), false);
 	AgentWorldState.StatesMap.Add(TEXT("bHasPathSouth"), false);
 	AgentWorldState.StatesMap.Add(TEXT("bHasPathEast"), false);
 	AgentWorldState.StatesMap.Add(TEXT("bHasPathWest"), false);
 
-	TObjectPtr<UGoal> GoalHasMovedNorth = NewObject<UGoal>(this);
-	GoalHasMovedNorth->GoalWorldState.StatesMap.Add(TEXT("bHasMovedNorth"), true);
-	GoalHasMovedNorth->GoalPriority = 2.0f;
-	AgentGoals.Add(GoalHasMovedNorth);
+	AgentWorldState.StatesMap.Add(TEXT("bPreferLateralMovement"), false);
+
+	
+	TObjectPtr<UGoal> GoalHasArrivedAtExit = NewObject<UGoal>(this);
+	GoalHasArrivedAtExit->GoalWorldState.StatesMap.Add(TEXT("bHasReachedEndOfMaze"), true);
+	GoalHasArrivedAtExit->GoalPriority = 2.0f;
+	AgentGoals.Add(GoalHasArrivedAtExit);
+
+	TObjectPtr<UGoal> GoalHasMovedVertically = NewObject<UGoal>(this);
+	GoalHasMovedVertically->GoalWorldState.StatesMap.Add(TEXT("bHasMovedVertically"), true);
+	GoalHasMovedVertically->GoalPriority = 3.0f;
+	AgentGoals.Add(GoalHasMovedVertically);
+	
+
 
 	TObjectPtr<UAction> ActionMoveTowardsNorth = NewObject<UAction>(this);
 	ActionMoveTowardsNorth->UniqueName = "Action_MoveTowards_North";
 	ActionMoveTowardsNorth->ActionCost = 1.0;
-	ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedNorth"), true);
+	// ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedNorth"), true);
+	ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedVertically"), true);
+	ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedLaterally"), false);
+	
 	ActionMoveTowardsNorth->ActionPrereqs.StatesMap.Add(TEXT("bHasReachedStartOfMaze"), true);
 	ActionMoveTowardsNorth->ActionPrereqs.StatesMap.Add(TEXT("bHasPathNorth"), true);
+	ActionMoveTowardsNorth->ActionPrereqs.StatesMap.Add(TEXT("bHasReachedEndOfMaze"), false);
+
 	AgentActions.Add(ActionMoveTowardsNorth);
 
 
-	TObjectPtr<UGoal> GoalHasMovedSouth = NewObject<UGoal>(this);
-	GoalHasMovedSouth->GoalWorldState.StatesMap.Add(TEXT("bHasMovedSouth"), true);
-	GoalHasMovedSouth->GoalPriority = 4.0f;
-	AgentGoals.Add(GoalHasMovedSouth);
+
 
 	TObjectPtr<UAction> ActionMoveTowardsSouth = NewObject<UAction>(this);
 	ActionMoveTowardsSouth->UniqueName = "Action_MoveTowards_South";
-	ActionMoveTowardsSouth->ActionCost = 1.0;
-	ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedSouth"), true);
+	ActionMoveTowardsSouth->ActionCost = 10.0;
+	// ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedSouth"), true);
+	ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedVertically"), true);
+	ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedLaterally"), false);
+
 	ActionMoveTowardsSouth->ActionPrereqs.StatesMap.Add(TEXT("bHasReachedStartOfMaze"), true);
 	ActionMoveTowardsSouth->ActionPrereqs.StatesMap.Add(TEXT("bHasPathSouth"), true);
 	AgentActions.Add(ActionMoveTowardsSouth);
 
 
-	TObjectPtr<UGoal> GoalHasMovedEast = NewObject<UGoal>(this);
-	GoalHasMovedEast->GoalWorldState.StatesMap.Add(TEXT("bHasMovedEast"), true);
-	GoalHasMovedEast->GoalPriority = 3.0f;
-	AgentGoals.Add(GoalHasMovedEast);
+
 
 	TObjectPtr<UAction> ActionMoveTowardsEast = NewObject<UAction>(this);
 	ActionMoveTowardsEast->UniqueName = "Action_MoveTowards_East";
-	ActionMoveTowardsEast->ActionCost = 1.0;
-	ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedEast"), true);
+	ActionMoveTowardsEast->ActionCost = 3.0;
+	// ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedEast"), true);
+	ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedVertically"), false);
+	ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedLaterally"), true);
+
 	ActionMoveTowardsEast->ActionPrereqs.StatesMap.Add(TEXT("bHasReachedStartOfMaze"), true);
 	ActionMoveTowardsEast->ActionPrereqs.StatesMap.Add(TEXT("bHasPathEast"), true);
+	ActionMoveTowardsEast->ActionPrereqs.StatesMap.Add(TEXT("bHasMovedLaterally"), false);
 	AgentActions.Add(ActionMoveTowardsEast);
 
 
-	TObjectPtr<UGoal> GoalHasMovedWest = NewObject<UGoal>(this);
-	GoalHasMovedWest->GoalWorldState.StatesMap.Add(TEXT("bHasMovedWest"), true);
-	GoalHasMovedWest->GoalPriority = 3.0f;
-	AgentGoals.Add(GoalHasMovedWest);
+
 
 	TObjectPtr<UAction> ActionMoveTowardsWest = NewObject<UAction>(this);
 	ActionMoveTowardsWest->UniqueName = "Action_MoveTowards_West";
-	ActionMoveTowardsWest->ActionCost = 1.0;
-	ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedWest"), true);
+	ActionMoveTowardsWest->ActionCost = 3.0;
+	// ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedWest"), true);
+	ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedVertically"), false);
+	ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(TEXT("bHasMovedLaterally"), true);
+
 	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(TEXT("bHasReachedStartOfMaze"), true);
 	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(TEXT("bHasPathWest"), true);
+	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(TEXT("bHasMovedLaterally"), false);
 	AgentActions.Add(ActionMoveTowardsWest);
+	
+	
+	// AgentWorldState.StatesMap.Add(TEXT("bShouldTryWestRepeatedly"), true);
+	// AgentWorldState.StatesMap.Add(TEXT("bShouldTryEastRepeatedly"), true);
+	
+	// AgentWorldState.StatesMap.Add(TEXT("bHasMovedNorth"), false);
+	// AgentWorldState.StatesMap.Add(TEXT("bHasMovedSouth"), false);
+	// AgentWorldState.StatesMap.Add(TEXT("bHasMovedEast"), false);
+	// AgentWorldState.StatesMap.Add(TEXT("bHasMovedWest"), false);
+	
+	// TObjectPtr<UGoal> GoalHasMovedWest = NewObject<UGoal>(this);
+	// GoalHasMovedWest->GoalWorldState.StatesMap.Add(TEXT("bHasMovedWest"), true);
+	// GoalHasMovedWest->GoalPriority = 3.0f;
+	// AgentGoals.Add(GoalHasMovedWest);
+	
+	// TObjectPtr<UGoal> GoalHasMovedEast = NewObject<UGoal>(this);
+	// GoalHasMovedEast->GoalWorldState.StatesMap.Add(TEXT("bHasMovedEast"), true);
+	// GoalHasMovedEast->GoalPriority = 4.0f;
+	// AgentGoals.Add(GoalHasMovedEast);
+	
+	// TObjectPtr<UGoal> GoalHasMovedSouth = NewObject<UGoal>(this);
+	// GoalHasMovedSouth->GoalWorldState.StatesMap.Add(TEXT("bHasMovedSouth"), true);
+	// GoalHasMovedSouth->GoalPriority = 5.0f;
+	// AgentGoals.Add(GoalHasMovedSouth);
+	
+	// TObjectPtr<UGoal> GoalHasMovedNorth = NewObject<UGoal>(this);
+	// GoalHasMovedNorth->GoalWorldState.StatesMap.Add(TEXT("bHasMovedNorth"), true);
+	// GoalHasMovedNorth->GoalPriority = 3.0f;
+	// AgentGoals.Add(GoalHasMovedNorth);
 }
 
 
@@ -1151,7 +1265,7 @@ void AAgentCharacter::AgentTickMoveToMazeStart(UAction* CurrentAgentAction)
 			if (CurrentNodesPath.IsEmpty())
 			{
 				// THIS SPACE IS NEVER CALLED IF NPC BEHAVING
-				RefreshCardinalPathWorldStates();
+				// RefreshCardinalPathWorldStates();
 
 				CurrentAgentAction->bIsCompleted = true;
 				return;
@@ -1223,9 +1337,10 @@ void AAgentCharacter::AgentTickMoveNorth(UAction* CurrentAgentAction)
 			if (CurrentNodesPath.IsEmpty())
 			{
 				// THIS SPACE IS NEVER CALLED IF NPC BEHAVING
-				UE_LOG(LogTemp, Warning, TEXT("AAgentCharacter::AgentTickMoveNorth THIS SPACE IS NEVER CALLED IF NPC BEHAVING"));
+				UE_LOG(LogTemp, Warning,
+				       TEXT("AAgentCharacter::AgentTickMoveNorth THIS SPACE IS NEVER CALLED IF NPC BEHAVING"));
 
-				RefreshCardinalPathWorldStates();
+				// RefreshCardinalPathWorldStates();
 
 				CurrentAgentAction->bIsCompleted = true;
 				return;
@@ -1293,7 +1408,7 @@ void AAgentCharacter::AgentTickMoveSouth(UAction* CurrentAgentAction)
 			{
 				// THIS SPACE IS NEVER CALLED IF NPC BEHAVING
 
-				RefreshCardinalPathWorldStates();
+				// RefreshCardinalPathWorldStates();
 
 				CurrentAgentAction->bIsCompleted = true;
 
@@ -1361,7 +1476,7 @@ void AAgentCharacter::AgentTickMoveEast(UAction* CurrentAgentAction)
 			{
 				// THIS SPACE IS NEVER CALLED IF NPC BEHAVING
 
-				RefreshCardinalPathWorldStates();
+				// RefreshCardinalPathWorldStates();
 
 				CurrentAgentAction->bIsCompleted = true;
 
@@ -1429,7 +1544,7 @@ void AAgentCharacter::AgentTickMoveWest(UAction* CurrentAgentAction)
 			{
 				// THIS SPACE IS NEVER CALLED IF NPC BEHAVING
 
-				RefreshCardinalPathWorldStates();
+				// RefreshCardinalPathWorldStates();
 
 				CurrentAgentAction->bIsCompleted = true;
 
@@ -1479,6 +1594,12 @@ void AAgentCharacter::AgentTickMoveWest(UAction* CurrentAgentAction)
 // Updates Agent's wordstate of cardinal direction pathing available
 void AAgentCharacter::RefreshCardinalPathWorldStates()
 {
+	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), false);
+	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), false);
+	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), false);
+	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), false);
+
+
 	if (PathfindingSubsystem)
 	{
 		ANavigationNode* NearestNode = PathfindingSubsystem->FindNearestNode(GetActorLocation());
@@ -1524,29 +1645,54 @@ void AAgentCharacter::RefreshCardinalPathWorldStates()
 					bool bHasPathWest = -DistanceY > CellDistanceThreshold;
 
 
+					// NORTH
 					if (bHasPathNorth)
 					{
 						UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathNorth"));
 
 						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), true);
 					}
+					else
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathNorth == false"));
+						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), false);
+					}
 
+					// SOUTH
 					if (bHasPathSouth)
 					{
 						UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathSouth"));
 						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), true);
 					}
+					else
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathSouth == false"));
+						//
+						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), false);
+					}
 
+					// EAST
 					if (bHasPathEast)
 					{
 						UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathEast"));
 						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), true);
 					}
+					else
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathEast == false"));
+						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), false);
+					}
 
+					// WEST
 					if (bHasPathWest)
 					{
 						UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathWest"));
 						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), true);
+					}
+					else
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathWest == false"));
+						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), false);
 					}
 
 					if (!(bHasPathNorth || bHasPathSouth || bHasPathEast || bHasPathWest))
