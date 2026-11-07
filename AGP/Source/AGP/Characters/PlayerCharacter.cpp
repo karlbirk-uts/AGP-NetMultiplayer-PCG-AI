@@ -6,6 +6,7 @@
 #include <EnhancedInputSubsystems.h>
 #include <EnhancedInputComponent.h>
 
+#include "AGP/AGP_PlayerController.h"
 #include "AGP/PlayerCharacterHUD.h"
 #include "AGP/Components/HealthComponent.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -108,6 +109,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		{
 			Input->BindAction(ReloadAction, ETriggerEvent::Triggered, this, &APlayerCharacter::ReloadWeapon);
 		}
+		if (CommsWheelAction)
+		{
+			Input->BindAction(CommsWheelAction, ETriggerEvent::Started, this, &APlayerCharacter::ToggleCommsWheel);
+		}
 	}
 }
 
@@ -200,6 +205,63 @@ void APlayerCharacter::ReloadWeapon(const FInputActionValue& Value)
 	Reload();
 }
 
+void APlayerCharacter::ShowCommsWheel(const FInputActionValue& Value)
+{
+	AAGP_PlayerController* PC = Cast<AAGP_PlayerController>(GetController());
+	if (PC)
+	{
+		PC->SetIgnoreLookInput(true);
+		PC->bShowMouseCursor = true;
+
+		FInputModeGameAndUI InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		InputMode.SetHideCursorDuringCapture(false);
+		PC->SetInputMode(InputMode);
+
+		if (!CommsWheelWidget && CommsWheelClass)
+		{
+			CommsWheelWidget = CreateWidget<UUserWidget>(PC, CommsWheelClass);
+			if (CommsWheelWidget)
+			{
+				CommsWheelWidget->AddToViewport();
+			}
+		}
+	}
+}
+
+void APlayerCharacter::HideCommsWheel(const FInputActionValue& Value)
+{
+	AAGP_PlayerController* PC = Cast<AAGP_PlayerController>(GetController());
+	if (PC)
+	{
+		PC->SetIgnoreLookInput(false);
+		PC->bShowMouseCursor = false;
+
+		PC->SetInputMode(FInputModeGameOnly());
+
+		if (CommsWheelWidget)
+		{
+			CommsWheelWidget->RemoveFromParent();
+			CommsWheelWidget = nullptr;
+		}
+	}
+}
+
+void APlayerCharacter::ToggleCommsWheel(const FInputActionValue& Value)
+{
+	if (!bWheelOpen)
+	{
+		ShowCommsWheel(Value);
+		UE_LOG(LogTemp, Warning, TEXT("Opened")); 
+		bWheelOpen = true;
+	}
+	else
+	{
+		HideCommsWheel(Value);
+		UE_LOG(LogTemp, Warning, TEXT("Closed")); 
+		bWheelOpen = false;
+	}
+}
 
 
 

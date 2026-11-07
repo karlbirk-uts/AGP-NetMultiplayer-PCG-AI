@@ -171,6 +171,7 @@ void AProceduralMazeFacility::GenerateFloorGrid()
 
 void AProceduralMazeFacility::InitializeMazeCells()
 {
+	// turning the mesh vertex grid into a grid of cells (basically referencing the midpoint of any 4 vertices in a quad, not the vertices themselves...)
 	CellsWidth = MazeWidth - 1;
 	CellsHeight = MazeHeight - 1;
 
@@ -191,7 +192,8 @@ void AProceduralMazeFacility::InitializeMazeCells()
 
 	EndCellX = CellsWidth - 1;
 	EndCellY = MidCellY;
-
+	
+// make sure the start and end cells are always open i.e. there's always an entry/exit point in the maze
 	MazeCells[StartCellY][StartCellX].WallWest = false;
 	MazeCells[EndCellY][EndCellX].WallEast = false;
 }
@@ -201,6 +203,7 @@ void AProceduralMazeFacility::GenerateMaze()
 	GenerateFloorGrid();
 	InitializeMazeCells();
 
+	//carves paths using DFS traversal
 	CarveFrom(StartCellX, StartCellY);
 
 	GenerateWallMeshes();
@@ -219,7 +222,7 @@ void AProceduralMazeFacility::GenerateMaze()
 
 
 	
-	// Custom pathfinding NavNodes emplacement
+	// Custom pathfinding NavNodes emplacement - by karl
 	SpawnNavNodesAndPathing();
 
 	
@@ -248,7 +251,7 @@ void AProceduralMazeFacility::CarveFrom(int32 CellX, int32 CellY)
 {
 	FMazeCell& Cell = MazeCells[CellY][CellX];
 	Cell.Visited = true;
-
+	// define directions which the search can go
 	TArray<FIntPoint> Directions = {
 		FIntPoint(1, 0),
 		FIntPoint(-1, 0),
@@ -261,7 +264,9 @@ void AProceduralMazeFacility::CarveFrom(int32 CellX, int32 CellY)
         int32 SwapIndex = RandomStream.RandRange(0, Directions.Num() - 1);
         Directions.Swap(i, SwapIndex);
     }
-
+	
+	//the main traversal logic: pick random direction, if unvisited mark as visited, carve out wall and continue, 
+	//if visited try new direction, if all neighbours are visited retreat until next unvisited cell
 	for (const FIntPoint& Dir : Directions)
 	{
 		int32 NX = CellX + Dir.X;
@@ -333,7 +338,8 @@ void AProceduralMazeFacility::GenerateWallMeshes()
 		UVs.Add(FVector2D(1, 1));
 		UVs.Add(FVector2D(0, 1));
 	};
-
+	
+	//create maze based on cells with walls remaining
 	for (int32 Y = 0; Y < CellsHeight; Y++)
 	{
 		for (int32 X = 0; X < CellsWidth; X++)
@@ -344,7 +350,7 @@ void AProceduralMazeFacility::GenerateWallMeshes()
 			float X1 = (X + 1) * CellSize;
 			float Y0 = Y * CellSize;
 			float Y1 = (Y + 1) * CellSize;
-
+	
 			if (Cell.WallWest)
 				AddWallQuad(FVector(X0, Y0, 0), FVector(X0, Y1, 0));
 
@@ -432,6 +438,13 @@ void AProceduralMazeFacility::SpawnNavNodesAndPathing()
 
 }
 
+
+// ----------MULTIPLAYER REPLICATION--------
+// this section has all of the parts for a server remote procedure call to generate the maze at runtime
+// all 'randomness' was replaced by a randomstream using a seed that is shared by all clients + server
+// on the UI side, multicastregeneratemaze is called from the playercontroller, which is then passed on
+// to the gamemodebase to reflect onto all clients.
+
 FVector AProceduralMazeFacility::GetCellWorldPosition(int32 CellX, int32 CellY) const
 {
 	return GetActorLocation() + FVector(
@@ -474,6 +487,7 @@ bool AProceduralMazeFacility::ShouldTickIfViewportsOnly() const
 	return true;
 }
 
+//some helpers
 FVector AProceduralMazeFacility::GetMazeStartCellWorldPosition() 
 {
 	FVector MazeStartPosition = GetCellWorldPosition(StartCellX, StartCellY);

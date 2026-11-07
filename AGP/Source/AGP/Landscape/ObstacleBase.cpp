@@ -27,6 +27,7 @@ void AObstacleBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+//basically just sets up the assigning for mazeobstaclemanager to carry out
 void AObstacleBase::AssignSpillType(
 	bool bMud,
 	UMaterialInterface* MudMaterial,

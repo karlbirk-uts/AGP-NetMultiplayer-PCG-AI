@@ -83,14 +83,9 @@ void APCGTerrainLandscape::GenerateTerrain(float XOffset, int32 SectionIndex, fl
 
     TerrainHeights.Empty();   // reset height storage
     TerrainHeights.Reserve(Width * Height);
-
+    
+    //pseudorandom offset to make sure that the map is noticeably different every time
     OutPerlinOffset = RandomStream.FRandRange(-1000000.0f, 1000000.0f);
-    //check, del later
-    UE_LOG(
-    LogTemp,
-    Warning,
-    TEXT("Perlin Offset = %f"),
-    OutPerlinOffset);
 
     for (int32 Y = 0; Y < Height; Y++)
     {
@@ -321,6 +316,8 @@ void APCGTerrainLandscape::GenerateFence(float XOffset, int32 SectionIndex, floa
         ProceduralMesh->SetMaterial(SectionIndex, FenceMaterial);
 }
 
+
+//multicast implementation - make the terrain look the same on all machines
 void APCGTerrainLandscape::MulticastRegenerateTerrain_Implementation(
     int32 Seed,
     float NewPerlinScale,

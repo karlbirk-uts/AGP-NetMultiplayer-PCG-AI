@@ -9,7 +9,7 @@ class UStaticMeshComponent;
 class UMaterialInterface;
 
 UENUM(BlueprintType)
-enum class EObstacleType : uint8
+enum class EObstacleType : uint8 //assign objects to the distraction or spill type in the editor, they have their own features
 {
 	Distraction UMETA(DisplayName = "Distraction"),
 	Spill       UMETA(DisplayName = "Spill")
