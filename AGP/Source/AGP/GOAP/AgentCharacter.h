@@ -30,10 +30,42 @@
 #include "Components/WidgetComponent.h"
 #include "AgentCharacter.generated.h"
 
-struct FAgentPlannerNode;
-/**
- * 
- */
+
+// Copy of A3 Planner.h's FPlannerNode. 
+// It didn't end up being customised by A4.
+USTRUCT(BlueprintType)
+struct FAgentPlannerNode
+{
+	GENERATED_BODY()
+
+	// Tree info 
+	UPROPERTY()
+	int32 Index = INDEX_NONE;
+
+	UPROPERTY()
+	int32 ParentIndex = INDEX_NONE;
+
+	// One action per node.
+	// Action/s is/are owned by UGOAPAgentComponent
+	UPROPERTY()
+	TObjectPtr<UAction> NodeAction = nullptr;
+
+	// Node-specific info on its cost to tree branch (stack) cost.
+
+	UPROPERTY()
+	float GCost = 0.0f; // GCost. From starting node, sum of all costs.
+
+	UPROPERTY()
+	float HCost = 0.0f; // Cost to get to goal (not used yet).
+
+	float FCost() const { return GCost + HCost; }; // A* total cost ( GCost + HCost ).
+
+	// Upon tree planning, truth table evolves per node.
+	FWorldState NodeWorldState;
+};
+
+
+
 UCLASS()
 class AGP_API AAgentCharacter : public AEnemyCharacter
 {
@@ -133,11 +165,14 @@ public:
 private:
 	// Local reusable node queue to test all from-Goal-to-Actions-to-NPCState 
 	// permutations	that potentially connect NPCState to Goal.
-	// TArray<FPlannerNode> PlannerNodes;
+	UPROPERTY()
 	TArray<FAgentPlannerNode> PlannerNodes;
 
 	// Parsing nodes using specific index
+	UPROPERTY()
 	TArray<int32> OpenSetIndex;
+
+	UPROPERTY()
 	TArray<int32> ClosedSetIndex;
 
 	// NON-POINTER version of graph building because UE GC
@@ -201,24 +236,3 @@ private:
 	
 };
 
-// Copy of A3 Planner.h's FPlannerNode. 
-// It didn't end up being customised by A4.
-struct FAgentPlannerNode
-{
-	// Tree info 
-	int32 Index = INDEX_NONE;
-	int32 ParentIndex = INDEX_NONE;
-
-	// One action per node.
-	// Action/s is/are owned by UGOAPAgentComponent
-	// TWeakObjectPtr<UGOAPAction> Action = nullptr;
-	TObjectPtr<UAction> NodeAction = nullptr;
-
-	// Node-specific info on its cost to tree branch (stack) cost.
-	float GCost = 0.0f; // GCost. From starting node, sum of all costs.
-	float HCost = 0.0f; // Cost to get to goal (not used yet).
-	float FCost() const { return GCost + HCost; }; // A* total cost ( GCost + HCost ).
-
-	// Upon tree planning, truth table evolves per node.
-	FWorldState NodeWorldState;
-};

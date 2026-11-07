@@ -115,7 +115,7 @@ void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 	else if (Action->UniqueName == Action_MoveTowards_StartOfMaze)
 	{
 		Action->bIsCompleted = MoveTowards(StartOfMaze);
-		
+
 		// AgentTickMoveToMazeStart(Action);
 	}
 	else if (Action->UniqueName == Action_MoveTowards_North)
@@ -233,54 +233,66 @@ void AAgentCharacter::TickDoCurrentPlan5()
 		// Favourite direction is north
 		if (Action->UniqueName == Action_MoveTowards_North)
 		{
-			float NorthBaseCost = GetDirectionalMoveCost(
-				North,
-				0.0f,
-				EndOfMaze,
-				GetActorLocation());
-			Action->ActionCost =
-				NorthBaseCost +
-				(North->NPCVisitedCounter * 2.0f);
+			if (North)
+			{
+				float NorthBaseCost = GetDirectionalMoveCost(
+					North,
+					0.0f,
+					EndOfMaze,
+					GetActorLocation());
+				Action->ActionCost =
+					NorthBaseCost +
+					(North->NPCVisitedCounter * 2.0f);
+			}
 		}
 		else if (Action->UniqueName == Action_MoveTowards_South)
 		{
-			// South direction is least favourable
-			float SouthBaseCost =
-				GetDirectionalMoveCost(
-					South,
-					0.5f,
-					EndOfMaze,
-					GetActorLocation());
-			Action->ActionCost =
-				SouthBaseCost +
-				(South->NPCVisitedCounter * 2.0f);
+			if (South)
+			{
+				// South direction is least favourable
+				float SouthBaseCost =
+					GetDirectionalMoveCost(
+						South,
+						0.5f,
+						EndOfMaze,
+						GetActorLocation());
+				Action->ActionCost =
+					SouthBaseCost +
+					(South->NPCVisitedCounter * 2.0f);
+			}
 		}
 		else if (Action->UniqueName == Action_MoveTowards_East)
 		{
-			// East and west with equal base costs and 
-			// NPCVisitedCounter considerations both
-			// prevents ping-pong inside concave maze bends,
-			// and lets NPC try south again if NEW has piles
-			// of breadcrumbs.
-			float EastBaseCost = GetDirectionalMoveCost(
-				East,
-				0.2f,
-				EndOfMaze,
-				GetActorLocation());
-			Action->ActionCost =
-				EastBaseCost +
-				(East->NPCVisitedCounter * 2.0f);
+			if (East)
+			{
+				// East and west with equal base costs and 
+				// NPCVisitedCounter considerations both
+				// prevents ping-pong inside concave maze bends,
+				// and lets NPC try south again if NEW has piles
+				// of breadcrumbs.
+				float EastBaseCost = GetDirectionalMoveCost(
+					East,
+					0.2f,
+					EndOfMaze,
+					GetActorLocation());
+				Action->ActionCost =
+					EastBaseCost +
+					(East->NPCVisitedCounter * 2.0f);
+			}
 		}
 		else if (Action->UniqueName == Action_MoveTowards_West)
 		{
-			float WestBaseCost = GetDirectionalMoveCost(
-				West,
-				0.2f,
-				EndOfMaze,
-				GetActorLocation());
-			Action->ActionCost =
-				WestBaseCost +
-				(West->NPCVisitedCounter * 2.0f);
+			if (West)
+			{
+				float WestBaseCost = GetDirectionalMoveCost(
+					West,
+					0.2f,
+					EndOfMaze,
+					GetActorLocation());
+				Action->ActionCost =
+					WestBaseCost +
+					(West->NPCVisitedCounter * 2.0f);
+			}
 		}
 	}
 	// // THIS APPROACH HATES SOUTH TOO MUCH.
@@ -321,7 +333,7 @@ void AAgentCharacter::TickDoCurrentPlan5()
 		{
 			// Can't pop from empty queue.
 			// Try to find new Plan
-			
+
 			bool bIsPlanFound = false;
 
 			// NOTE: AgentGoals was pre-sorted upon BeginPlay()
@@ -384,12 +396,12 @@ void AAgentCharacter::TickDoCurrentPlan5()
 
 					// Plan TArray built. TQueue rebuild (for poppable)
 					BuildQueueFromPlan();
-					
+
 					break;
 				}
 			}
 
-			
+
 			// If PLAN was found
 			if (bIsPlanFound && !CurrentPlanQueue.IsEmpty())
 			{
@@ -400,7 +412,7 @@ void AAgentCharacter::TickDoCurrentPlan5()
 				// WHEN TROUBLESHOOTING, HAVE THIS UNCOMMENTED
 				// IF GOAP Goals, Actions, WorldStates and therefore Plans
 				// come together, this is block is never called.
-				
+
 				// If no plan was found for ANY goal, fallback to Action_Wander
 				// if (CurrentQueuedAction && CurrentQueuedAction->UniqueName == Action_Wander)
 				// {
@@ -735,7 +747,7 @@ void AAgentCharacter::InitPCGMazeGoals()
 	ActionMoveTowardsStartOfMaze->ActionOutcomes.StatesMap.Add(State_bHasReached_StartOfMaze, true);
 	ActionMoveTowardsStartOfMaze->ActionPrereqs.StatesMap.Empty();
 	AgentActions.Add(ActionMoveTowardsStartOfMaze);
-	
+
 	TObjectPtr<UAction> ActionMoveTowardsNorth = NewObject<UAction>(this);
 	ActionMoveTowardsNorth->UniqueName = Action_MoveTowards_North;
 	ActionMoveTowardsNorth->ActionCost = 1.0;
@@ -767,8 +779,8 @@ void AAgentCharacter::InitPCGMazeGoals()
 	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasReached_StartOfMaze, true);
 	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasPathWest, true);
 	AgentActions.Add(ActionMoveTowardsWest);
-	
-	
+
+
 	// TObjectPtr<UGoal> GoalHasMovedVertically = NewObject<UGoal>(this);
 	// GoalHasMovedVertically->GoalWorldState.StatesMap.Add(State_bHasMovedVertically, true);
 	// GoalHasMovedVertically->GoalPriority = 3.0f;
@@ -778,7 +790,7 @@ void AAgentCharacter::InitPCGMazeGoals()
 	// GoalHasMovedLaterally->GoalWorldState.StatesMap.Add(State_bHasMovedLaterally, true);
 	// GoalHasMovedLaterally->GoalPriority = 3.0f;
 	// AgentGoals.Add(GoalHasMovedLaterally);
-	
+
 	// ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasMovedLaterally, false);
 	// ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, false);
 	// ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, true);
@@ -793,7 +805,6 @@ void AAgentCharacter::InitPCGMazeGoals()
 	// AgentWorldState.StatesMap.Add(State_bHasMovedVertically, false);
 	// AgentWorldState.StatesMap.Add(State_bHasMovedLaterally, false);
 	// AgentWorldState.StatesMap.Add(TEXT("bHasRepeatedZone"), false);
-
 }
 
 
@@ -1292,7 +1303,6 @@ void AAgentCharacter::RefreshCardinalPathWorldStates()
 					AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), bHasPathSouth);
 					AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), bHasPathEast);
 					AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), bHasPathWest);
-					
 				}
 			}
 		}
@@ -1645,6 +1655,3 @@ float AAgentCharacter::GetDirectionalMoveCost(
 
 	return 1.0f + DistancePenalty + FlatModifier;
 }
-
-
-
