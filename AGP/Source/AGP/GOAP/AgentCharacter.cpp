@@ -1265,6 +1265,7 @@ void AAgentCharacter::AgentTickMoveWest(UAction* CurrentAgentAction)
 // • Each new plan creation
 void AAgentCharacter::RefreshCardinalPathWorldStates()
 {
+	// Defaults first
 	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), false);
 	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), false);
 	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), false);
@@ -1280,6 +1281,7 @@ void AAgentCharacter::RefreshCardinalPathWorldStates()
 
 			if (NearestNode->GetConnectedNodes().Num() > 0)
 			{
+				// Iterate through neighbournodes
 				for (int32 i = 0; i < NearestNode->GetConnectedNodes().Num(); ++i)
 				{
 					ANavigationNode* NeighbourNode = NearestNode->GetConnectedNodes()[i];
@@ -1292,17 +1294,30 @@ void AAgentCharacter::RefreshCardinalPathWorldStates()
 						NeighbourNode->LocationComponent->GetComponentLocation().Y -
 						NearestNode->LocationComponent->GetComponentLocation().Y;
 
+					// North, south, east, west, looking for positives
 					bool bHasPathNorth = DistanceX > CellDistanceThreshold;
+					if (bHasPathNorth)
+					{
+						AgentWorldState.StatesMap.Emplace(State_bHasPathNorth, true);
+					}
+
 					bool bHasPathSouth = -DistanceX > CellDistanceThreshold;
+					if (bHasPathSouth)
+					{
+						AgentWorldState.StatesMap.Emplace(State_bHasPathSouth, bHasPathSouth);
+					}
+
 					bool bHasPathEast = DistanceY > CellDistanceThreshold;
+					if (bHasPathEast)
+					{
+						AgentWorldState.StatesMap.Emplace(State_bHasPathEast, bHasPathEast);
+					}
+
 					bool bHasPathWest = -DistanceY > CellDistanceThreshold;
-
-
-					// North, south, east, west
-					AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), bHasPathNorth);
-					AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), bHasPathSouth);
-					AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), bHasPathEast);
-					AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), bHasPathWest);
+					if (bHasPathWest)
+					{
+						AgentWorldState.StatesMap.Emplace(State_bHasPathWest, bHasPathWest);
+					}
 				}
 			}
 		}
