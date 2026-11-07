@@ -125,6 +125,8 @@ private:
 	// NON-POINTER version of graph building because GC 
 	// seems to be hungry.
 	int32 AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode);
+	float GetDirectionalMoveCost(const ANavigationNode* TargetNode, float FlatModifier, const FVector& GoalLocation,
+	                             const FVector& CurrentLocation);
 
 
 	// Maze testing

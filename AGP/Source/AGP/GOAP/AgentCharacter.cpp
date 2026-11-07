@@ -10,7 +10,7 @@
 #include "GameFramework/Actor.h"
 #include "Kismet/GameplayStatics.h"
 #include "../Pathfinding/NavigationNode.h"
-#include "Components/WidgetComponent.h"
+// #include "Components/WidgetComponent.h"
 
 // struct FAgentPlannerNode;
 
@@ -75,11 +75,11 @@ void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 	// e.g. Evade(), Fire(), MoveTowardsGoal()
 
 
-	if (Action->UniqueName == "Action_Wander")
+	if (Action->UniqueName == Action_Wander)
 	{
 		AgentTickPatrol(Action);
 	}
-	else if (Action->UniqueName == "Action_MoveTowards_StartOfMaze")
+	else if (Action->UniqueName == Action_MoveTowards_StartOfMaze)
 	{
 		AgentTickMoveToMazeStart(Action);
 	}
@@ -127,6 +127,9 @@ void AAgentCharacter::TickDoCurrentPlan5()
 			// Trying new pseudocode. This now toggles off some worldstates
 
 		}
+		
+		AgentWorldState.StatesMap.Emplace(TEXT("bHasMoved"), false); 
+
 
 		CurrentQueuedAction->bIsCompleted = false;
 		CurrentQueuedAction = nullptr;
@@ -144,26 +147,77 @@ void AAgentCharacter::TickDoCurrentPlan5()
 	ANavigationNode* South = GetSouthCellNavigationNode();
 	ANavigationNode* East = GetEastCellNavigationNode();
 	ANavigationNode* West = GetWestCellNavigationNode();
-	for (UAction* Action : AgentActions)
+	
+
+	
+	// TEST: Adding favourability to EndOfMaze to each cardinal direction choice
+	// which hypothetically recentres after far right or far left
+	for (UAction* Action : AgentActions) 
 	{
 		if (!Action) continue;
-		if (Action->UniqueName == Action_MoveTowards_North)
+
+		if (Action->UniqueName == Action_MoveTowards_North) 
 		{
-			Action->ActionCost = 1.0f + (North->NPCVisitedCounter * 2.0f);
-		}
-		else if (Action->UniqueName == Action_MoveTowards_South)
+			float BaseCost = GetDirectionalMoveCost(
+				North, 
+				0.0f, 
+				EndOfMaze, 
+				GetActorLocation());
+			Action->ActionCost = BaseCost + (North->NPCVisitedCounter * 2.0f);
+		} 
+		else if (Action->UniqueName == Action_MoveTowards_South) 
 		{
-			Action->ActionCost = 10.0f + (South->NPCVisitedCounter * 2.0f);
-		}
-		else if (Action->UniqueName == Action_MoveTowards_East)
+			// Dropped from 10.0f to a light flat modifier. The distance penalty handles the rest naturally.
+			float BaseCost = 
+				GetDirectionalMoveCost(
+					South, 
+					0.5f, 
+					EndOfMaze,
+					GetActorLocation());
+			Action->ActionCost = BaseCost + (South->NPCVisitedCounter * 2.0f);
+		} 
+		else if (Action->UniqueName == Action_MoveTowards_East) 
 		{
-			Action->ActionCost = 3.0f + (East->NPCVisitedCounter * 5.0f);
-		}
-		else if (Action->UniqueName == Action_MoveTowards_West)
+			// Lowered visit multiplier from 5.0f to 2.0f to stop horizontal paths from locking out too fast
+			float BaseCost = GetDirectionalMoveCost(
+				East, 
+				0.2f, 
+				EndOfMaze, 
+				GetActorLocation());
+			Action->ActionCost = BaseCost + (East->NPCVisitedCounter * 2.0f);
+		} 
+		else if (Action->UniqueName == Action_MoveTowards_West) 
 		{
-			Action->ActionCost = 3.0f + (West->NPCVisitedCounter * 5.0f);
-		}
+			float BaseCost = GetDirectionalMoveCost(
+				West, 
+				0.2f, 
+				EndOfMaze, 
+				GetActorLocation());
+			Action->ActionCost = BaseCost + (West->NPCVisitedCounter * 2.0f);
+		} 
 	}
+	// // THIS APPROACH HATES SOUTH. BOUNCES AWAY FROM ANY SOUTHERN MOVEMENTS.
+	// for (UAction* Action : AgentActions)
+	// {
+	// 	if (!Action) continue;
+	// 	if (Action->UniqueName == Action_MoveTowards_North)
+	// 	{
+	// 		Action->ActionCost = 1.0f + (North->NPCVisitedCounter * 2.0f);
+	// 	}
+	// 	else if (Action->UniqueName == Action_MoveTowards_South)
+	// 	{
+	// 		Action->ActionCost = 10.0f + (South->NPCVisitedCounter * 2.0f);
+	// 	}
+	// 	else if (Action->UniqueName == Action_MoveTowards_East)
+	// 	{
+	// 		Action->ActionCost = 3.0f + (East->NPCVisitedCounter * 5.0f);
+	// 	}
+	// 	else if (Action->UniqueName == Action_MoveTowards_West)
+	// 	{
+	// 		Action->ActionCost = 3.0f + (West->NPCVisitedCounter * 5.0f);
+	// 	}
+	// }
+	
 
 
 	// If queued action empty/null, try to fetch or build a new plan
@@ -518,14 +572,14 @@ void AAgentCharacter::InitPCGMazeGoals()
 	AgentWorldState.StatesMap.Add(State_bHasReached_EndOfMaze, false);
 	AgentWorldState.StatesMap.Add(State_bHasMovedVertically, false);
 	AgentWorldState.StatesMap.Add(State_bHasMovedLaterally, false);
-	AgentWorldState.StatesMap.Add(State_bHasPathNorth, false);
-	AgentWorldState.StatesMap.Add(State_bHasPathSouth, false);
-	AgentWorldState.StatesMap.Add(State_bHasPathEast, false);
-	AgentWorldState.StatesMap.Add(State_bHasPathWest, false);
+	AgentWorldState.StatesMap.Add(State_bHasPathNorth, true);
+	AgentWorldState.StatesMap.Add(State_bHasPathSouth, true);
+	AgentWorldState.StatesMap.Add(State_bHasPathEast, true);
+	AgentWorldState.StatesMap.Add(State_bHasPathWest, true);
 	AgentWorldState.StatesMap.Add(TEXT("bHasRepeatedZone"), false);
 
 
-	// Goals
+	/*** GOALS ***/
 	TObjectPtr<UGoal> GoalWander = NewObject<UGoal>(this);
 	GoalWander->GoalWorldState.StatesMap.Add(State_bHasWandered, true);
 	GoalWander->GoalPriority = 99.0f;
@@ -541,10 +595,21 @@ void AAgentCharacter::InitPCGMazeGoals()
 	GoalHasArrivedAtExit->GoalPriority = 2.0f;
 	AgentGoals.Add(GoalHasArrivedAtExit);
 
-	TObjectPtr<UGoal> GoalHasMovedVertically = NewObject<UGoal>(this);
-	GoalHasMovedVertically->GoalWorldState.StatesMap.Add(State_bHasMovedVertically, true);
-	GoalHasMovedVertically->GoalPriority = 3.0f;
-	AgentGoals.Add(GoalHasMovedVertically);
+	// TObjectPtr<UGoal> GoalHasMovedVertically = NewObject<UGoal>(this);
+	// GoalHasMovedVertically->GoalWorldState.StatesMap.Add(State_bHasMovedVertically, true);
+	// GoalHasMovedVertically->GoalPriority = 3.0f;
+	// AgentGoals.Add(GoalHasMovedVertically);
+	//
+	// TObjectPtr<UGoal> GoalHasMovedLaterally = NewObject<UGoal>(this);
+	// GoalHasMovedLaterally->GoalWorldState.StatesMap.Add(State_bHasMovedLaterally, true);
+	// GoalHasMovedLaterally->GoalPriority = 3.0f;
+	// AgentGoals.Add(GoalHasMovedLaterally);
+	
+	TObjectPtr<UGoal> GoalMakeMazeMove = NewObject<UGoal>(this);
+	GoalMakeMazeMove->GoalWorldState.StatesMap.Add(TEXT("bHasMoved"), true);
+	GoalMakeMazeMove->GoalPriority = 2.0f; // Evaluated right after StartOfMaze
+	AgentGoals.Add(GoalMakeMazeMove);
+	/*** GOALS ***/
 
 
 	// Actions - used by planner, implementation elsewhere, e.g. Patrol()
@@ -566,8 +631,9 @@ void AAgentCharacter::InitPCGMazeGoals()
 	TObjectPtr<UAction> ActionMoveTowardsNorth = NewObject<UAction>(this);
 	ActionMoveTowardsNorth->UniqueName = Action_MoveTowards_North;
 	ActionMoveTowardsNorth->ActionCost = 1.0;
-	ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, true);
-	ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, false);
+	// ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, true);
+	// ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, false);
+	ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(TEXT("bHasMoved"), true);
 
 	ActionMoveTowardsNorth->ActionPrereqs.StatesMap.Add(State_bHasReached_StartOfMaze, true);
 	ActionMoveTowardsNorth->ActionPrereqs.StatesMap.Add(State_bHasPathNorth, true);
@@ -578,8 +644,9 @@ void AAgentCharacter::InitPCGMazeGoals()
 	TObjectPtr<UAction> ActionMoveTowardsSouth = NewObject<UAction>(this);
 	ActionMoveTowardsSouth->UniqueName = Action_MoveTowards_South;
 	ActionMoveTowardsSouth->ActionCost = 10.0;
-	ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, true);
-	ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, false);
+	// ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, true);
+	// ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, false);
+	ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(TEXT("bHasMoved"), true);
 
 	ActionMoveTowardsSouth->ActionPrereqs.StatesMap.Add(State_bHasReached_StartOfMaze, true);
 	ActionMoveTowardsSouth->ActionPrereqs.StatesMap.Add(State_bHasPathSouth, true);
@@ -589,8 +656,9 @@ void AAgentCharacter::InitPCGMazeGoals()
 	TObjectPtr<UAction> ActionMoveTowardsEast = NewObject<UAction>(this);
 	ActionMoveTowardsEast->UniqueName = Action_MoveTowards_East;
 	ActionMoveTowardsEast->ActionCost = 3.0;
-	ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, false);
-	ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, true);
+	// ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, false);
+	// ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, true);
+	ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(TEXT("bHasMoved"), true);
 
 	ActionMoveTowardsEast->ActionPrereqs.StatesMap.Add(State_bHasReached_StartOfMaze, true);
 	ActionMoveTowardsEast->ActionPrereqs.StatesMap.Add(State_bHasPathEast, true);
@@ -601,8 +669,9 @@ void AAgentCharacter::InitPCGMazeGoals()
 	TObjectPtr<UAction> ActionMoveTowardsWest = NewObject<UAction>(this);
 	ActionMoveTowardsWest->UniqueName = Action_MoveTowards_West;
 	ActionMoveTowardsWest->ActionCost = 3.0;
-	ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, false);
-	ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, true);
+	// ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, false);
+	// ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, true);
+	ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(TEXT("bHasMoved"), true);
 
 	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasReached_StartOfMaze, true);
 	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasPathWest, true);
@@ -615,137 +684,81 @@ void AAgentCharacter::InitPCGMazeGoals()
 
 
 
-
-// Updates Agent's wordstate of cardinal direction pathing available
-void AAgentCharacter::RefreshCardinalPathWorldStates()
+// ALL NPC movement comes through this method
+void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 {
-	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), false);
-	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), false);
-	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), false);
-	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), false);
-
-
-	if (PathfindingSubsystem)
+	if (CurrentNodesPath.IsEmpty())
 	{
-		ANavigationNode* NearestNode = PathfindingSubsystem->FindNearestNode(GetActorLocation());
-		if (NearestNode)
+		// Never called
+		// CurrentAction->bIsCompleted = true;
+		// UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAction->bIsCompleted = true;"));
+		return;
+	}
+
+
+	// Unstuck code - NPC cutting corners and getting stuck (hasn't moved more than 10cm)
+	if (FVector::DistSquared(GetActorLocation(), LastCheckedLocation) < 50.0f) // Hard matching 5cm movement
+	{
+		StuckTimer += GetWorld()->GetDeltaSeconds();
+		if (StuckTimer > 3.0f) // Stuck for 2 seconds
 		{
-			float CellDistanceThreshold = 150.0f; // Half of the 300 units square cells in PCGMaze
+			UE_LOG(LogTemp, Warning, TEXT("NPC is stuck trying to reach node! Forcing path clear."));
+			CurrentNodesPath.Empty();
+			StuckTimer = 0.0f;
+			
+			RefreshCardinalPathWorldStates();
 
-			if (NearestNode->GetConnectedNodes().Num() > 0)
-			{
-				// UE_LOG(LogTemp, Warning,
-				//        TEXT("RefreshCardinalPathWorldStates NearestNode->GetConnectedNodes().Num(): %d"),
-				//        NearestNode->GetConnectedNodes().Num());
-
-
-				for (int32 i = 0; i < NearestNode->GetConnectedNodes().Num(); ++i)
-				{
-					ANavigationNode* NeighbourNode = NearestNode->GetConnectedNodes()[i];
-
-					float DistanceX =
-						NeighbourNode->LocationComponent->GetComponentLocation().X -
-						NearestNode->LocationComponent->GetComponentLocation().X;
-					// UE_LOG(LogTemp, Warning,
-					//        TEXT("RefreshCardinalPathWorldStates DistanceX: %f"),
-					//        DistanceX);
-
-					float DistanceY =
-						NeighbourNode->LocationComponent->GetComponentLocation().Y -
-						NearestNode->LocationComponent->GetComponentLocation().Y;
-					// UE_LOG(LogTemp, Warning,
-					//        TEXT("RefreshCardinalPathWorldStates DistanceY: %f"),
-					//        DistanceY);
-
-					// UE_LOG(LogTemp, Warning, TEXT("Nearest [%s] Location: %s"),
-					//        *NearestNode->GetName(), *NearestNode->LocationComponent->GetComponentLocation().ToString());
-					//
-					// UE_LOG(LogTemp, Warning, TEXT("Neighbour [%s] Location: %s"),
-					//        *NeighbourNode->GetName(),
-					//        *NeighbourNode->LocationComponent->GetComponentLocation().ToString());
-
-					bool bHasPathNorth = DistanceX > CellDistanceThreshold;
-					bool bHasPathSouth = -DistanceX > CellDistanceThreshold;
-					bool bHasPathEast = DistanceY > CellDistanceThreshold;
-					bool bHasPathWest = -DistanceY > CellDistanceThreshold;
-
-
-					// NORTH
-					if (bHasPathNorth)
-					{
-						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathNorth"));
-
-						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), true);
-					}
-					else
-					{
-						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathNorth == false"));
-						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), false);
-					}
-
-					// SOUTH
-					if (bHasPathSouth)
-					{
-						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathSouth"));
-						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), true);
-					}
-					else
-					{
-						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathSouth == false"));
-						//
-						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), false);
-					}
-
-					// EAST
-					if (bHasPathEast)
-					{
-						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathEast"));
-						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), true);
-					}
-					else
-					{
-						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathEast == false"));
-						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), false);
-					}
-
-					// WEST
-					if (bHasPathWest)
-					{
-						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathWest"));
-						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), true);
-					}
-					else
-					{
-						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathWest == false"));
-						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), false);
-					}
-
-					if (!(bHasPathNorth || bHasPathSouth || bHasPathEast || bHasPathWest))
-					{
-						UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathNESW == false"));
-						UE_LOG(LogTemp, Warning,
-						       TEXT("RefreshCardinalPathWorldStates NearestNode->GetConnectedNodes().Num(): %d"),
-						       NearestNode->GetConnectedNodes().Num());
-					}
-				}
-			}
-			else
-			{
-				// NearestNode->GetConnectedNodes().Num() > 0
-				UE_LOG(LogTemp, Warning,
-				       TEXT("NPC RefreshCardinalPathWorldStates NearestNode->GetConnectedNodes().Num() <= 0"));
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("NPC RefreshCardinalPathWorldStates !NearestNode"));
+			return;
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NPC RefreshCardinalPathWorldStates !PathfindingSubsystem"));
+		LastCheckedLocation = GetActorLocation();
+		StuckTimer = 0.0f;
+	}
+
+	FVector NextLocation = CurrentNodesPath[0];
+	FVector NPCLocation = GetActorLocation();
+
+	FVector NextLocationXY = FVector(NextLocation.X, NextLocation.Y, 0.0f);
+	FVector NPCLocationXY = FVector(NPCLocation.X, NPCLocation.Y, 0.0f);
+
+	FVector Direction = NextLocationXY - NPCLocationXY;
+	Direction.Normalize();
+	AddMovementInput(Direction, 1.0f);
+
+	// float MazePathingLocationThreshold = 160.0f; // 3D distance
+	float MazePathingLocationThreshold = 110.0f; // 2D distance;
+
+	bool bHasReachedNextLocationXY =
+		FVector::DistSquared(NextLocationXY, NPCLocationXY) <=
+		(MazePathingLocationThreshold * MazePathingLocationThreshold);
+	if (bHasReachedNextLocationXY)
+	{
+		LastCheckedLocation = NPCLocation;
+		StuckTimer = 0.0f;
+
+		// EDIT: Moved to NavNode
+		// EDIT: Moved back to AAgentCharacter because collider broke NavNode's USceneComponent
+		// Updating a NavigationNode's visits counter
+		GetNearestNavigationNode()->NPCVisitedCounter++;
+		RefreshCardinalPathWorldStates();
+
+		CurrentNodesPath.RemoveAt(0);
+		// UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentNodesPath.RemoveAt(0);"));
+
+
+		if (CurrentNodesPath.IsEmpty())
+		{
+
+			CurrentAgentAction->bIsCompleted = true;
+			UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAgentAction->bIsCompleted: %s"), *CurrentAgentAction->UniqueName);
+		}
 	}
 }
+
+
+
 
 
 
@@ -820,6 +833,9 @@ void AAgentCharacter::AgentTickMoveToMazeStart(UAction* CurrentAgentAction)
 
 	AgentMoveAlongPath(CurrentAgentAction);
 }
+
+
+
 
 
 void AAgentCharacter::AgentTickMoveNorth(UAction* CurrentAgentAction)
@@ -1099,6 +1115,143 @@ void AAgentCharacter::AgentTickMoveWest(UAction* CurrentAgentAction)
 
 	AgentMoveAlongPath(CurrentAgentAction);
 }
+
+
+// Updates Agent's wordstate of cardinal direction pathing available
+void AAgentCharacter::RefreshCardinalPathWorldStates()
+{
+	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), false);
+	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), false);
+	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), false);
+	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), false);
+
+
+	if (PathfindingSubsystem)
+	{
+		ANavigationNode* NearestNode = PathfindingSubsystem->FindNearestNode(GetActorLocation());
+		if (NearestNode)
+		{
+			float CellDistanceThreshold = 150.0f; // Half of the 300 units square cells in PCGMaze
+
+			if (NearestNode->GetConnectedNodes().Num() > 0)
+			{
+				// UE_LOG(LogTemp, Warning,
+				//        TEXT("RefreshCardinalPathWorldStates NearestNode->GetConnectedNodes().Num(): %d"),
+				//        NearestNode->GetConnectedNodes().Num());
+
+
+				for (int32 i = 0; i < NearestNode->GetConnectedNodes().Num(); ++i)
+				{
+					ANavigationNode* NeighbourNode = NearestNode->GetConnectedNodes()[i];
+
+					float DistanceX =
+						NeighbourNode->LocationComponent->GetComponentLocation().X -
+						NearestNode->LocationComponent->GetComponentLocation().X;
+					// UE_LOG(LogTemp, Warning,
+					//        TEXT("RefreshCardinalPathWorldStates DistanceX: %f"),
+					//        DistanceX);
+
+					float DistanceY =
+						NeighbourNode->LocationComponent->GetComponentLocation().Y -
+						NearestNode->LocationComponent->GetComponentLocation().Y;
+					// UE_LOG(LogTemp, Warning,
+					//        TEXT("RefreshCardinalPathWorldStates DistanceY: %f"),
+					//        DistanceY);
+
+					// UE_LOG(LogTemp, Warning, TEXT("Nearest [%s] Location: %s"),
+					//        *NearestNode->GetName(), *NearestNode->LocationComponent->GetComponentLocation().ToString());
+					//
+					// UE_LOG(LogTemp, Warning, TEXT("Neighbour [%s] Location: %s"),
+					//        *NeighbourNode->GetName(),
+					//        *NeighbourNode->LocationComponent->GetComponentLocation().ToString());
+
+					bool bHasPathNorth = DistanceX > CellDistanceThreshold;
+					bool bHasPathSouth = -DistanceX > CellDistanceThreshold;
+					bool bHasPathEast = DistanceY > CellDistanceThreshold;
+					bool bHasPathWest = -DistanceY > CellDistanceThreshold;
+
+
+					// NORTH
+					if (bHasPathNorth)
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathNorth"));
+
+						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), true);
+					}
+					else
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathNorth == false"));
+						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), false);
+					}
+
+					// SOUTH
+					if (bHasPathSouth)
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathSouth"));
+						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), true);
+					}
+					else
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathSouth == false"));
+						//
+						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), false);
+					}
+
+					// EAST
+					if (bHasPathEast)
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathEast"));
+						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), true);
+					}
+					else
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathEast == false"));
+						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), false);
+					}
+
+					// WEST
+					if (bHasPathWest)
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathWest"));
+						AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), true);
+					}
+					else
+					{
+						// UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathWest == false"));
+						// AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), false);
+					}
+
+					if (!(bHasPathNorth || bHasPathSouth || bHasPathEast || bHasPathWest))
+					{
+						UE_LOG(LogTemp, Warning, TEXT("RefreshCardinalPathWorldStates bHasPathNESW == false"));
+						UE_LOG(LogTemp, Warning,
+						       TEXT("RefreshCardinalPathWorldStates NearestNode->GetConnectedNodes().Num(): %d"),
+						       NearestNode->GetConnectedNodes().Num());
+					}
+				}
+			}
+			else
+			{
+				// NearestNode->GetConnectedNodes().Num() > 0
+				UE_LOG(LogTemp, Warning,
+				       TEXT("NPC RefreshCardinalPathWorldStates NearestNode->GetConnectedNodes().Num() <= 0"));
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("NPC RefreshCardinalPathWorldStates !NearestNode"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("NPC RefreshCardinalPathWorldStates !PathfindingSubsystem"));
+	}
+}
+
+
+
+
+
 
 void AAgentCharacter::CheckReachedEndOfMaze()
 {
@@ -1386,79 +1539,6 @@ ANavigationNode* AAgentCharacter::GetWestCellNavigationNode()
 }
 
 
-// ALL NPC movement comes through this method
-void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
-{
-	if (CurrentNodesPath.IsEmpty())
-	{
-		// Never called
-		// CurrentAction->bIsCompleted = true;
-		// UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAction->bIsCompleted = true;"));
-		return;
-	}
-
-
-	// Unstuck code - NPC cutting corners and getting stuck (hasn't moved more than 10cm)
-	if (FVector::DistSquared(GetActorLocation(), LastCheckedLocation) < 50.0f) // Hard matching 5cm movement
-	{
-		StuckTimer += GetWorld()->GetDeltaSeconds();
-		if (StuckTimer > 3.0f) // Stuck for 2 seconds
-		{
-			UE_LOG(LogTemp, Warning, TEXT("NPC is stuck trying to reach node! Forcing path clear."));
-			CurrentNodesPath.Empty();
-			StuckTimer = 0.0f;
-			
-			RefreshCardinalPathWorldStates();
-
-			return;
-		}
-	}
-	else
-	{
-		LastCheckedLocation = GetActorLocation();
-		StuckTimer = 0.0f;
-	}
-
-	FVector NextLocation = CurrentNodesPath[0];
-	FVector NPCLocation = GetActorLocation();
-
-	FVector NextLocationXY = FVector(NextLocation.X, NextLocation.Y, 0.0f);
-	FVector NPCLocationXY = FVector(NPCLocation.X, NPCLocation.Y, 0.0f);
-
-	FVector Direction = NextLocationXY - NPCLocationXY;
-	Direction.Normalize();
-	AddMovementInput(Direction, 1.0f);
-
-	// float MazePathingLocationThreshold = 160.0f; // 3D distance
-	float MazePathingLocationThreshold = 110.0f; // 2D distance;
-
-	bool bHasReachedNextLocationXY =
-		FVector::DistSquared(NextLocationXY, NPCLocationXY) <=
-		(MazePathingLocationThreshold * MazePathingLocationThreshold);
-	if (bHasReachedNextLocationXY)
-	{
-		LastCheckedLocation = NPCLocation;
-		StuckTimer = 0.0f;
-
-		// EDIT: Moved to NavNode
-		// EDIT: Moved back to AAgentCharacter because collider broke NavNode's USceneComponent
-		// Updating a NavigationNode's visits counter
-		GetNearestNavigationNode()->NPCVisitedCounter++;
-		RefreshCardinalPathWorldStates();
-
-		CurrentNodesPath.RemoveAt(0);
-		// UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentNodesPath.RemoveAt(0);"));
-
-
-		if (CurrentNodesPath.IsEmpty())
-		{
-
-			CurrentAgentAction->bIsCompleted = true;
-			UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAgentAction->bIsCompleted: %s"), *CurrentAgentAction->UniqueName);
-		}
-	}
-}
-
 
 
 int32 AAgentCharacter::AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode)
@@ -1469,4 +1549,31 @@ int32 AAgentCharacter::AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode)
 	PlannerNodes[NextIndex].Index = NextIndex;
 
 	return NextIndex;
+}
+
+float AAgentCharacter::GetDirectionalMoveCost(
+	const ANavigationNode* TargetNode, 
+	float FlatModifier, 
+	const FVector& GoalLocation, 
+	const FVector& CurrentLocation)
+{
+	// Penalty for invalid or null nodes
+	if (!TargetNode) 
+	{
+		return 100.0f; 
+	}
+
+	float CurrentDist = FVector::Dist(CurrentLocation, GoalLocation);
+	float TargetDist  = FVector::Dist(TargetNode->GetActorLocation(), GoalLocation);
+
+	// If the move takes us further from the goal (like moving South), 
+	// it applies a small, natural penalty rather than a hardcoded block.
+	float DistancePenalty = 0.0f;
+	if (TargetDist > CurrentDist)
+	{
+		// DistancePenalty = 1.5f;
+		DistancePenalty = 1.1f;
+	}
+
+	return 1.0f + DistancePenalty + FlatModifier;
 }

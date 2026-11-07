@@ -69,6 +69,7 @@ public:
 	
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent* LocationComponent;
+	// Seems to allow GetActorLocation() too
 	
 	
 	// // The trigger zone (1 meter = 100 Unreal Units radius)
