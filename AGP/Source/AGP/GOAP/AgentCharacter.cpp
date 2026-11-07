@@ -1,4 +1,18 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+/**
+ * AAgentCharacter cpp
+ * 
+ * GOAP Agent (NPC)
+ * Hosts GOAP AgentWorldState, AgentActions, AgentGoals
+ * and a customised Planner methods for PCGMaze
+ * 
+ * To solve PCGMaze, there are broad goals, with AgentAction 
+ * heuristics variables weighing up deltas of distance to maze end, 
+ * and each cardinal movement option considers how frequently NPC
+ * has visited a path (cell / customised ANavigationNode).
+ * 
+ * Author: Karl Birk
+ * UTS AGP 2026 Group 10
+ */
 
 
 // ReSharper disable CppUE4CodingStandardNamingViolationWarning
@@ -29,7 +43,10 @@ void AAgentCharacter::BeginPlay()
 	AgentCurrentPlan.Empty();
 	CurrentPlanQueue.Empty();
 
-	// Wanting the start position and end position of the maze for NPC testing
+	// Fetch the PCGMaze Start and End. Initially for testing, now built into
+	// Action weighting variables. If direction of next path ends up being
+	// farther away from EndOfMaze, Action is less favourable. There's another
+	// heuristic related to preferring a path less travelled too.
 	AActor* FoundActor =
 		UGameplayStatics::GetActorOfClass(GetWorld(), AProceduralMazeFacility::StaticClass());
 	if (FoundActor)
@@ -38,20 +55,28 @@ void AAgentCharacter::BeginPlay()
 			Cast<AProceduralMazeFacility>(FoundActor);
 		if (ProceduralMazeFacility)
 		{
+			// Converted some ProceduralMazeFacility variables to UPROPERTY
+			// for getters of PCG maze's FVectors Start and End. Values
+			// needed to be retained between pre-PIE and post-PIE instances.
 			StartOfMaze = ProceduralMazeFacility->GetMazeStartCellWorldPosition();
 			UE_LOG(LogTemp, Warning, TEXT("AAgentCharacter StartOfMaze %s"), *StartOfMaze.ToString());
 			EndOfMaze = ProceduralMazeFacility->GetMazeEndCellWorldPosition();
 			UE_LOG(LogTemp, Warning, TEXT("AAgentCharacter EndOfMaze %s"), *EndOfMaze.ToString());
-
-			
 		}
 	}
 
 
+	// PCGMaze problem specific WorldStates, Goals and Actions
+	// with a fallback Wander (aka Patrol).
+	// Right now, NPC loves it when a Plan comes together.
 	InitGOAPGoalsActionsWorldStates();
 
+	// Goal priority 1.0f is higher than 10.0f
 	SortGoalsAscendingPriority();
 
+	// Super::CurrentNodesPath is utilised for pathing
+	// refreshed during Super::BeginPlay()
+	// (cardinal direction pathing, not quickest path cheating)
 	CurrentNodesPath.Empty();
 }
 
@@ -59,22 +84,30 @@ void AAgentCharacter::Tick(float DeltaTime)
 {
 	if (!bHasReachedEndOfMaze)
 	{
+		// This tracks enemy-sensing from Super::UpdateTargetLocation
 		UpdateTargetLocation();
 
+		// Some custom work for PCGMaze		
 		TickDoCurrentPlan5();
 
-
+		// Win condition check
 		CheckReachedEndOfMaze();
 	}
 }
 
 
+// PCGMaze specific implementation, observing current plan's action
+// then enacting on an implementation. Currently, each action 
+// implementation can be called in Tick, and toggle its bIsComplete 
+// after it's determined that it is complete.
 void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 {
 	// Perform implementations of actions from here.
 	// e.g. Evade(), Fire(), MoveTowardsGoal()
 
-
+	// NOTE: GOAP allows for sequencing of actions to reach goals.
+	// Cardinal direction choices in maze-solving criteria, by
+	// themselves look boring.
 	if (Action->UniqueName == Action_Wander)
 	{
 		AgentTickPatrol(Action);
@@ -101,102 +134,154 @@ void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 	}
 }
 
+// PCGMaze problem specific WorldStates, Goals and Actions
+// with a fallback Wander (aka Patrol).
+// Right now, NPC loves it when a Plan comes together.
 void AAgentCharacter::InitGOAPGoalsActionsWorldStates()
 {
+	// PCGMaze-specific base. 
+	// NOTE: Weighting of Actions for NESW cardinal movement
+	// updates in TickDoCurrentPlan5()
+	// Goals weights are constant in this GOAP implementation.
 	InitPCGMazeGoals();
 }
 
 
-
-
+// Observing CurrentQueuedAction (from a cached TQueue which came
+// from a variable TArray). It is called once per frame.
+// It acknowledges and resets movement-goal states after they're met.
 void AAgentCharacter::TickDoCurrentPlan5()
 {
-	// ACTION bIsCompleted true - updating AgentWorldState
+	// ACTION bIsCompleted FLAGGED. 
+	// Parse once and apply AgentWorldStates updates
 	if (CurrentQueuedAction && CurrentQueuedAction->bIsCompleted)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TickDoCurrentPlan5 ActionCompleted: %s. Applying outcomes."), *CurrentQueuedAction->UniqueName);
+		UE_LOG(LogTemp, Warning, TEXT("TickDoCurrentPlan5 ActionCompleted: %s. Applying outcomes."),
+		       *CurrentQueuedAction->UniqueName);
 
-		// Update AgentWorldState
+		// Update AgentWorldStates. Some changes can be permanent
+		// e.g. reaching a maze start goal.
 		for (const TPair<FString, bool>& ActionOutcome : CurrentQueuedAction->ActionOutcomes.StatesMap)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("TickDoCurrentPlan5 ActionOutcome.Key: %s"), *ActionOutcome.Key);
 
 
-			// For goal completion like bHasReachedStartOfMaze
+			// For goal completion like State_bHasReached_EndOfMaze
 			AgentWorldState.StatesMap.Emplace(ActionOutcome.Key, ActionOutcome.Value);
-			// Trying new pseudocode. This now toggles off some worldstates
 
+			// Tried numerous permutations of WorldStates, Goals and Actions.
+			// Track individual NESW movement goals and resets amongst.
+			// Moving to nearby NavigationNodePtr->bIsJunction.
+			// Temporarily blocking backwards pathing (after I observed behaviours).
 		}
-		
-		AgentWorldState.StatesMap.Emplace(TEXT("bHasMoved"), false); 
+
+		// RESETTING cardinal movement mini goals. 
+		// Could filter Action uniquename choices and blanket a few resets.
+		AgentWorldState.StatesMap.Emplace(State_bHasMoved, false);
 
 
+		// The boolean reset on the Action
 		CurrentQueuedAction->bIsCompleted = false;
 		CurrentQueuedAction = nullptr;
 
+		// Checks whether cell (ANavigationNode location underfoot)
+		// has available NESW openings.
+		// In testing, this works best if calling at least upon:
+		// • Each cell movement completion 
+		// • Each other action completion
+		// • Each new plan creation
 		RefreshCardinalPathWorldStates();
 
-		// Early exit breaks patrol state?
+		// In testing, early exit break here allows for AgentWorldState values
+		// changes to be recognised by next GetPlan(). 
+		// GetPlan was hidden from TickDoCurrentPlan5's access until 
+		// bIsCompleted flags were all updated and parsed TQueue invalid.
 		return;
 	}
 
-
-	// Updating actioncosts for NESW movement
+	// PER TICK, update action costs for NESW movement.
+	// NOTES: In testing, this works best if called in Tick.
 	// ANavigationNode* Current = GetNearestNavigationNode();
 	ANavigationNode* North = GetNorthCellNavigationNode();
 	ANavigationNode* South = GetSouthCellNavigationNode();
 	ANavigationNode* East = GetEastCellNavigationNode();
 	ANavigationNode* West = GetWestCellNavigationNode();
-	
 
-	
-	// TEST: Adding favourability to EndOfMaze to each cardinal direction choice
-	// which hypothetically recentres after far right or far left
-	for (UAction* Action : AgentActions) 
+	// TEST: Adding favourability to EndOfMaze to each cardinal direction
+	// EDIT: Final build GOAP HEURISTICS, because it works well!
+	// PARSE CARDINAL MOVEMENT ACTIONS and update weighting, accounting for:
+	// • ANavigationNode's NPCVisitedCounter (increments upon cell movements)
+	//   and
+	// • Distance to EndOfMaze delta between cardinal directions cell choices
+	//   and
+	// • Some trial and error with cardinal direction favourability 
+	//   (North, positive X direction, favoured over E,W,S, from PCGMap design)
+	// TODO:
+	// (NiceToHave?) Cardinal direction favourability flexibility for
+	// variants of PCGMaze that may start NESW and end NESW, of which N to N
+	// in practice would be hard for GOAP alone, 
+	// maybe by spawning additional Dijkstra bot zone scanners.
+	for (UAction* Action : AgentActions)
 	{
+		// NPC's AgentActions TArray contains a blank Action.
+		// Current GOAP design and implementation has permanency 
+		// in all NPC's AgentActions.
 		if (!Action) continue;
 
-		if (Action->UniqueName == Action_MoveTowards_North) 
+		// Favourite direction is north
+		if (Action->UniqueName == Action_MoveTowards_North)
 		{
-			float BaseCost = GetDirectionalMoveCost(
-				North, 
-				0.0f, 
-				EndOfMaze, 
+			float NorthBaseCost = GetDirectionalMoveCost(
+				North,
+				0.0f,
+				EndOfMaze,
 				GetActorLocation());
-			Action->ActionCost = BaseCost + (North->NPCVisitedCounter * 2.0f);
-		} 
-		else if (Action->UniqueName == Action_MoveTowards_South) 
+			Action->ActionCost =
+				NorthBaseCost +
+				(North->NPCVisitedCounter * 2.0f);
+		}
+		else if (Action->UniqueName == Action_MoveTowards_South)
 		{
-			// Dropped from 10.0f to a light flat modifier. The distance penalty handles the rest naturally.
-			float BaseCost = 
+			// South direction is least favourable
+			float SouthBaseCost =
 				GetDirectionalMoveCost(
-					South, 
-					0.5f, 
+					South,
+					0.5f,
 					EndOfMaze,
 					GetActorLocation());
-			Action->ActionCost = BaseCost + (South->NPCVisitedCounter * 2.0f);
-		} 
-		else if (Action->UniqueName == Action_MoveTowards_East) 
+			Action->ActionCost =
+				SouthBaseCost +
+				(South->NPCVisitedCounter * 2.0f);
+		}
+		else if (Action->UniqueName == Action_MoveTowards_East)
 		{
-			// Lowered visit multiplier from 5.0f to 2.0f to stop horizontal paths from locking out too fast
-			float BaseCost = GetDirectionalMoveCost(
-				East, 
-				0.2f, 
-				EndOfMaze, 
+			// East and west with equal base costs and 
+			// NPCVisitedCounter considerations both
+			// prevents ping-pong inside concave maze bends,
+			// and lets NPC try south again if NEW has piles
+			// of breadcrumbs.
+			float EastBaseCost = GetDirectionalMoveCost(
+				East,
+				0.2f,
+				EndOfMaze,
 				GetActorLocation());
-			Action->ActionCost = BaseCost + (East->NPCVisitedCounter * 2.0f);
-		} 
-		else if (Action->UniqueName == Action_MoveTowards_West) 
+			Action->ActionCost =
+				EastBaseCost +
+				(East->NPCVisitedCounter * 2.0f);
+		}
+		else if (Action->UniqueName == Action_MoveTowards_West)
 		{
-			float BaseCost = GetDirectionalMoveCost(
-				West, 
-				0.2f, 
-				EndOfMaze, 
+			float WestBaseCost = GetDirectionalMoveCost(
+				West,
+				0.2f,
+				EndOfMaze,
 				GetActorLocation());
-			Action->ActionCost = BaseCost + (West->NPCVisitedCounter * 2.0f);
-		} 
+			Action->ActionCost =
+				WestBaseCost +
+				(West->NPCVisitedCounter * 2.0f);
+		}
 	}
-	// // THIS APPROACH HATES SOUTH. BOUNCES AWAY FROM ANY SOUTHERN MOVEMENTS.
+	// // THIS APPROACH HATES SOUTH TOO MUCH.
 	// for (UAction* Action : AgentActions)
 	// {
 	// 	if (!Action) continue;
@@ -217,39 +302,57 @@ void AAgentCharacter::TickDoCurrentPlan5()
 	// 		Action->ActionCost = 3.0f + (West->NPCVisitedCounter * 5.0f);
 	// 	}
 	// }
-	
 
 
-	// If queued action empty/null, try to fetch or build a new plan
+	// PLAN QUEUE INVALID ACTION
 	if (CurrentQueuedAction == nullptr)
 	{
+		// Refresh cardinal movement access in AgentWorldState
 		RefreshCardinalPathWorldStates();
 
+		// Pop invalid Action
 		if (!CurrentPlanQueue.IsEmpty())
 		{
 			CurrentPlanQueue.Dequeue(CurrentQueuedAction);
 		}
 		else
 		{
+			// Can't pop from empty queue.
+			// Try to find new Plan
+			
 			bool bIsPlanFound = false;
 
+			// NOTE: AgentGoals was pre-sorted upon BeginPlay()
+			// with priority 1.0f being higher than 10.0f priority.
+			// Goal priority is constant in this GOAP implementation
 			for (TObjectPtr<UGoal> Goal : AgentGoals)
 			{
+				// If no Goals found, there's a fallback hack later.
 				if (!Goal) continue;
 
-				// If the goal state is already entirely met, skip planning for it
+
+				// If this Goal's WorldStates are already entirely met, 
+				// skip (e.g. State_bHasReached_StartOfMaze).
+				// If no accessible Goals, there's a fallback later.
 				if (AgentWorldState.HasAll(Goal->GoalWorldState))
 				{
 					continue;
 				}
 
-				// Clean the plan container before rewriting
+				// Empty the whole Plan TArray for clean Plan
 				AgentCurrentPlan.Empty();
 
-				AgentGetPlan(AgentActions, AgentWorldState, Goal->GoalWorldState, AgentCurrentPlan);
+
+				// Fill the whole TArray for a new Plan (for this Goal)
+				AgentGetPlan(
+					AgentActions,
+					AgentWorldState,
+					Goal->GoalWorldState,
+					AgentCurrentPlan);
 
 				if (AgentCurrentPlan.Num() > 0)
 				{
+					/* Lots of printouts in troubleshooting */
 					UE_LOG(LogTemp, Warning, TEXT("NPC successfully formed a NEW PLAN for goal!"));
 
 					if (Goal->GoalWorldState.StatesMap.Num() > 0)
@@ -259,10 +362,11 @@ void AAgentCharacter::TickDoCurrentPlan5()
 							UE_LOG(LogTemp, Warning, TEXT("NEW PLAN looking to meet Goal key: %s"), *Pair.Key);
 						}
 					}
-					
+
 					for (const TPair<FString, bool>& Pair : AgentWorldState.StatesMap)
 					{
-						UE_LOG(LogTemp, Warning, TEXT("NEW PLAN starting with AgentWorldState: %s, %s"), *Pair.Key, Pair.Value ? TEXT("true") : TEXT("false"));
+						UE_LOG(LogTemp, Warning, TEXT("NEW PLAN starting with AgentWorldState: %s, %s"), *Pair.Key,
+						       Pair.Value ? TEXT("true") : TEXT("false"));
 					}
 
 
@@ -270,19 +374,31 @@ void AAgentCharacter::TickDoCurrentPlan5()
 					{
 						UE_LOG(LogTemp, Warning, TEXT("NEW PLAN -> Plan Step: %s"), *Action->UniqueName);
 					}
+					/* Lots of printouts in troubleshooting */
 
-					BuildQueueFromPlan();
+
+					// Found a valid plan for best available goal
 					bIsPlanFound = true;
-					break; // Found a valid plan, stop looking at lower priority goals
+
+					// Plan TArray built. TQueue rebuild (for poppable)
+					BuildQueueFromPlan();
+					
+					break;
 				}
 			}
 
+			
+			// If PLAN was found
 			if (bIsPlanFound && !CurrentPlanQueue.IsEmpty())
 			{
 				CurrentPlanQueue.Dequeue(CurrentQueuedAction);
 			}
 			else
 			{
+				// WHEN TROUBLESHOOTING, HAVE THIS UNCOMMENTED
+				// IF GOAP Goals, Actions, WorldStates and therefore Plans
+				// come together, this is block is never called.
+				
 				// If no plan was found for ANY goal, fallback to Action_Wander
 				// if (CurrentQueuedAction && CurrentQueuedAction->UniqueName == Action_Wander)
 				// {
@@ -313,11 +429,16 @@ void AAgentCharacter::TickDoCurrentPlan5()
 	// Execute the current action if valid
 	if (CurrentQueuedAction)
 	{
+		// Execution method for any Action (keeping AAction light weight)
 		TickDoActionImplementation(CurrentQueuedAction);
 	}
 }
 
 
+// From A3 APlanner::GetPlan, but now with MaxPlannerIterations
+// to prevent PIE crashes when Plan stacks one Action infinitely.
+// Research suggests Plan should be smaller and not stack one 
+// Action on top of itself repeatedly.
 bool AAgentCharacter::AgentGetPlan(
 	TArray<TObjectPtr<UAction>> AllNPCActions,
 	const FWorldState& NPCState,
@@ -513,8 +634,7 @@ bool AAgentCharacter::AgentGetPlan(
 }
 
 
-
-
+// Copy of AGP TickPatrol but calling AgentMoveAlongPath(UAction*)
 void AAgentCharacter::AgentTickPatrol(UAction* CurrentAgentAction)
 {
 	if (PathfindingSubsystem)
@@ -563,20 +683,23 @@ void AAgentCharacter::AgentTickPatrol(UAction* CurrentAgentAction)
 }
 
 
-
+// PCGMaze-specific base world states, goals, actions
+// NOTE: Weighting of Actions for NESW cardinal movement
+// updates in TickDoCurrentPlan5()
+// Goals weights are constant in this GOAP implementation.
 void AAgentCharacter::InitPCGMazeGoals()
 {
 	// Agent WorldStates
 	AgentWorldState.StatesMap.Add(State_bHasWandered, false);
 	AgentWorldState.StatesMap.Add(State_bHasReached_StartOfMaze, false);
 	AgentWorldState.StatesMap.Add(State_bHasReached_EndOfMaze, false);
-	AgentWorldState.StatesMap.Add(State_bHasMovedVertically, false);
-	AgentWorldState.StatesMap.Add(State_bHasMovedLaterally, false);
+	// AgentWorldState.StatesMap.Add(State_bHasMovedVertically, false);
+	// AgentWorldState.StatesMap.Add(State_bHasMovedLaterally, false);
 	AgentWorldState.StatesMap.Add(State_bHasPathNorth, true);
 	AgentWorldState.StatesMap.Add(State_bHasPathSouth, true);
 	AgentWorldState.StatesMap.Add(State_bHasPathEast, true);
 	AgentWorldState.StatesMap.Add(State_bHasPathWest, true);
-	AgentWorldState.StatesMap.Add(TEXT("bHasRepeatedZone"), false);
+	// AgentWorldState.StatesMap.Add(TEXT("bHasRepeatedZone"), false);
 
 
 	/*** GOALS ***/
@@ -604,9 +727,9 @@ void AAgentCharacter::InitPCGMazeGoals()
 	// GoalHasMovedLaterally->GoalWorldState.StatesMap.Add(State_bHasMovedLaterally, true);
 	// GoalHasMovedLaterally->GoalPriority = 3.0f;
 	// AgentGoals.Add(GoalHasMovedLaterally);
-	
+
 	TObjectPtr<UGoal> GoalMakeMazeMove = NewObject<UGoal>(this);
-	GoalMakeMazeMove->GoalWorldState.StatesMap.Add(TEXT("bHasMoved"), true);
+	GoalMakeMazeMove->GoalWorldState.StatesMap.Add(State_bHasMoved, true);
 	GoalMakeMazeMove->GoalPriority = 2.0f; // Evaluated right after StartOfMaze
 	AgentGoals.Add(GoalMakeMazeMove);
 	/*** GOALS ***/
@@ -633,7 +756,7 @@ void AAgentCharacter::InitPCGMazeGoals()
 	ActionMoveTowardsNorth->ActionCost = 1.0;
 	// ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, true);
 	// ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, false);
-	ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(TEXT("bHasMoved"), true);
+	ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(State_bHasMoved, true);
 
 	ActionMoveTowardsNorth->ActionPrereqs.StatesMap.Add(State_bHasReached_StartOfMaze, true);
 	ActionMoveTowardsNorth->ActionPrereqs.StatesMap.Add(State_bHasPathNorth, true);
@@ -646,7 +769,7 @@ void AAgentCharacter::InitPCGMazeGoals()
 	ActionMoveTowardsSouth->ActionCost = 10.0;
 	// ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, true);
 	// ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, false);
-	ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(TEXT("bHasMoved"), true);
+	ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(State_bHasMoved, true);
 
 	ActionMoveTowardsSouth->ActionPrereqs.StatesMap.Add(State_bHasReached_StartOfMaze, true);
 	ActionMoveTowardsSouth->ActionPrereqs.StatesMap.Add(State_bHasPathSouth, true);
@@ -658,7 +781,7 @@ void AAgentCharacter::InitPCGMazeGoals()
 	ActionMoveTowardsEast->ActionCost = 3.0;
 	// ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, false);
 	// ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, true);
-	ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(TEXT("bHasMoved"), true);
+	ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(State_bHasMoved, true);
 
 	ActionMoveTowardsEast->ActionPrereqs.StatesMap.Add(State_bHasReached_StartOfMaze, true);
 	ActionMoveTowardsEast->ActionPrereqs.StatesMap.Add(State_bHasPathEast, true);
@@ -671,41 +794,41 @@ void AAgentCharacter::InitPCGMazeGoals()
 	ActionMoveTowardsWest->ActionCost = 3.0;
 	// ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, false);
 	// ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, true);
-	ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(TEXT("bHasMoved"), true);
+	ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(State_bHasMoved, true);
 
 	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasReached_StartOfMaze, true);
 	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasPathWest, true);
 	// ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasMovedLaterally, false);
 	AgentActions.Add(ActionMoveTowardsWest);
-	
 }
 
 
-
-
-
-// ALL NPC movement comes through this method
+// MOVEMENT comes through this method.
+// Same as AGP MoveAlongPath with UAction* bIsCompleted flagged true.
 void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 {
 	if (CurrentNodesPath.IsEmpty())
 	{
-		// Never called
+		// Never called. Checking whether UPathfindingSubsystem called
+		// previously to have ANavigationNode spawning and connecting.
 		// CurrentAction->bIsCompleted = true;
 		// UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAction->bIsCompleted = true;"));
 		return;
 	}
 
 
-	// Unstuck code - NPC cutting corners and getting stuck (hasn't moved more than 10cm)
-	if (FVector::DistSquared(GetActorLocation(), LastCheckedLocation) < 50.0f) // Hard matching 5cm movement
+	// PCGMaze unstuck code - NPC was cutting corners and getting stuck
+	// and PCGMaze helper class was spawning Obstacles blueprints that 
+	// had colliders. 50.0f here means NPC hasn't moved more than 5cm per tick.
+	if (FVector::DistSquared(GetActorLocation(), LastCheckedLocation) < 50.0f)
 	{
 		StuckTimer += GetWorld()->GetDeltaSeconds();
-		if (StuckTimer > 3.0f) // Stuck for 2 seconds
+		if (StuckTimer > 3.0f) // Stuck for 3 seconds
 		{
 			UE_LOG(LogTemp, Warning, TEXT("NPC is stuck trying to reach node! Forcing path clear."));
 			CurrentNodesPath.Empty();
 			StuckTimer = 0.0f;
-			
+
 			RefreshCardinalPathWorldStates();
 
 			return;
@@ -728,6 +851,7 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 	AddMovementInput(Direction, 1.0f);
 
 	// float MazePathingLocationThreshold = 160.0f; // 3D distance
+	// Flat maze so using 2D distances and movement vectors.
 	float MazePathingLocationThreshold = 110.0f; // 2D distance;
 
 	bool bHasReachedNextLocationXY =
@@ -738,10 +862,13 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 		LastCheckedLocation = NPCLocation;
 		StuckTimer = 0.0f;
 
-		// EDIT: Moved to NavNode
-		// EDIT: Moved back to AAgentCharacter because collider broke NavNode's USceneComponent
-		// Updating a NavigationNode's visits counter
+		// Incrementing a NavigationNode's visits counter
+		// EDIT: Moved incrementing logic to ANavigationNode.
+		// EDIT: Moved back to AAgentCharacter because new collider 
+		// broke ANavigationNode's USceneComponent (but ANavigationNode 
+		// seems to support ActorGetLocation() as an Undo of this choice?).
 		GetNearestNavigationNode()->NPCVisitedCounter++;
+
 		RefreshCardinalPathWorldStates();
 
 		CurrentNodesPath.RemoveAt(0);
@@ -750,18 +877,16 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 
 		if (CurrentNodesPath.IsEmpty())
 		{
-
 			CurrentAgentAction->bIsCompleted = true;
-			UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAgentAction->bIsCompleted: %s"), *CurrentAgentAction->UniqueName);
+			UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAgentAction->bIsCompleted: %s"),
+			       *CurrentAgentAction->UniqueName);
 		}
 	}
 }
 
 
-
-
-
-
+// Using ANavigationNode pathing nodes and neighbour-connections, then
+// AgentMoveAlongPath(UAction*) can update the UAction's bIsCompleted
 void AAgentCharacter::AgentTickMoveToMazeStart(UAction* CurrentAgentAction)
 {
 	if (PathfindingSubsystem)
@@ -835,9 +960,8 @@ void AAgentCharacter::AgentTickMoveToMazeStart(UAction* CurrentAgentAction)
 }
 
 
-
-
-
+// Using ANavigationNode pathing nodes and neighbour-connections, then
+// AgentMoveAlongPath(UAction*) can update the UAction's bIsCompleted
 void AAgentCharacter::AgentTickMoveNorth(UAction* CurrentAgentAction)
 {
 	FVector DestinationLocation = GetNorthCellNavigationNode()->LocationComponent->GetComponentLocation();
@@ -912,6 +1036,8 @@ void AAgentCharacter::AgentTickMoveNorth(UAction* CurrentAgentAction)
 }
 
 
+// Using ANavigationNode pathing nodes and neighbour-connections, then
+// AgentMoveAlongPath(UAction*) can update the UAction's bIsCompleted
 void AAgentCharacter::AgentTickMoveSouth(UAction* CurrentAgentAction)
 {
 	FVector DestinationLocation = GetSouthCellNavigationNode()->LocationComponent->GetComponentLocation();
@@ -980,6 +1106,9 @@ void AAgentCharacter::AgentTickMoveSouth(UAction* CurrentAgentAction)
 	AgentMoveAlongPath(CurrentAgentAction);
 }
 
+
+// Using ANavigationNode pathing nodes and neighbour-connections, then
+// AgentMoveAlongPath(UAction*) can update the UAction's bIsCompleted
 void AAgentCharacter::AgentTickMoveEast(UAction* CurrentAgentAction)
 {
 	FVector DestinationLocation = GetEastCellNavigationNode()->LocationComponent->GetComponentLocation();
@@ -1048,6 +1177,9 @@ void AAgentCharacter::AgentTickMoveEast(UAction* CurrentAgentAction)
 	AgentMoveAlongPath(CurrentAgentAction);
 }
 
+
+// Using ANavigationNode pathing nodes and neighbour-connections, then
+// AgentMoveAlongPath(UAction*) can update the UAction's bIsCompleted
 void AAgentCharacter::AgentTickMoveWest(UAction* CurrentAgentAction)
 {
 	FVector DestinationLocation = GetWestCellNavigationNode()->LocationComponent->GetComponentLocation();
@@ -1117,7 +1249,12 @@ void AAgentCharacter::AgentTickMoveWest(UAction* CurrentAgentAction)
 }
 
 
-// Updates Agent's wordstate of cardinal direction pathing available
+// Checks whether cell (ANavigationNode location underfoot)
+// has available NESW openings.
+// In testing, this works best if calling at least upon:
+// • Each cell movement completion 
+// • Each other action completion
+// • Each new plan creation
 void AAgentCharacter::RefreshCardinalPathWorldStates()
 {
 	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), false);
@@ -1249,10 +1386,8 @@ void AAgentCharacter::RefreshCardinalPathWorldStates()
 }
 
 
-
-
-
-
+// Win condition called inside Tick, which had stopped NPC's GOAP engine
+// upon bHasReachedEndOfMaze = true;
 void AAgentCharacter::CheckReachedEndOfMaze()
 {
 	FVector NPCLocation = GetActorLocation();
@@ -1420,7 +1555,7 @@ ANavigationNode* AAgentCharacter::GetSouthCellNavigationNode()
 		{
 			const TArray<ANavigationNode*>& ConnectedNodes =
 				NearestNode->GetConnectedNodes();
-			
+
 			int32 StartIndex = -1;
 			for (int32 i = 0; i < ConnectedNodes.Num(); ++i)
 			{
@@ -1539,8 +1674,6 @@ ANavigationNode* AAgentCharacter::GetWestCellNavigationNode()
 }
 
 
-
-
 int32 AAgentCharacter::AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode)
 {
 	// Research suggests using Emplace on TArray shouldn't break index tracking
@@ -1552,19 +1685,19 @@ int32 AAgentCharacter::AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode)
 }
 
 float AAgentCharacter::GetDirectionalMoveCost(
-	const ANavigationNode* TargetNode, 
-	float FlatModifier, 
-	const FVector& GoalLocation, 
+	const ANavigationNode* TargetNode,
+	float FlatModifier,
+	const FVector& GoalLocation,
 	const FVector& CurrentLocation)
 {
 	// Penalty for invalid or null nodes
-	if (!TargetNode) 
+	if (!TargetNode)
 	{
-		return 100.0f; 
+		return 100.0f;
 	}
 
 	float CurrentDist = FVector::Dist(CurrentLocation, GoalLocation);
-	float TargetDist  = FVector::Dist(TargetNode->GetActorLocation(), GoalLocation);
+	float TargetDist = FVector::Dist(TargetNode->GetActorLocation(), GoalLocation);
 
 	// If the move takes us further from the goal (like moving South), 
 	// it applies a small, natural penalty rather than a hardcoded block.

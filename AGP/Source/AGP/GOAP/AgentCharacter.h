@@ -34,53 +34,54 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	// The real truth table stays here. Referred to before and after TickDoCurrentPlan()
+	// GOAP agent's truthtable.
 	UPROPERTY()
 	FWorldState AgentWorldState; // e.g bHasWeapon, bHasAmmo, bIsWeaponLegendary
 
+	// GOAP engine wants to complete a prioritised list of UGoal
 	UPROPERTY()
 	TArray<TObjectPtr<UGoal>> AgentGoals; // e.g. GetWeaponGoal, KillEnemyGoal
 
+	// GOAP engine will develop plans from this finite list of UAction
 	UPROPERTY()
 	TArray<TObjectPtr<UAction>> AgentActions; // e.g. FireAction, ReloadAction, GetWeaponAction
 
-
-	// Decision-Making Engine
-	// UPROPERTY()
-	// TObjectPtr<UPlanner> Planner;
-
-	// Agent-copy of current best plan. This can change once per tick, currently.
+	// GOAP agent's knowledge of current best plan for best attainable goal.
 	UPROPERTY()
 	TArray<TObjectPtr<UAction>> AgentCurrentPlan;
 
-	UPROPERTY()
-	int32 CurrentPlanIndex = 0;
-
-
-	// UFUNCTION()
-	// void TickDoCurrentPlan();
-
-	UFUNCTION()
-	void TickDoCurrentPlan5();
-
-	// Poppable version of TArray used inside TickDoCurrentPlan()
+	// Poppable version of AgentCurrentPlan
 	TQueue<TObjectPtr<UAction>> CurrentPlanQueue;
 
 	void BuildQueueFromPlan();
-
+	
 	UPROPERTY()
 	TObjectPtr<UAction> CurrentQueuedAction = nullptr;
 
-	// Testing timer to reset some AgentWworldState values to false
-	FTimerHandle VariableTimerHandle;
+	
+	// GOAP PLANNER (A4 edit, inhouse, somewhat bespoke for PCGMaze)
+	UPROPERTY()
+	int32 CurrentPlanIndex = 0;
+	
+	UFUNCTION()
+	void TickDoCurrentPlan5();
 
 
-	// Helper implementation
+	
+	// TESTING timeouts to reset some AgentWworldState values
+	// FTimerHandle VariableTimerHandle;
+
+
+	// Helper implementation.
+	// Working MoveTowards minigoal method, with bool triggered
+	// once arrived. Unused by A4 finished build.
 	bool MoveTowards(const FVector& Location);
 
+	// Goals priority 1.0f is higher than 10.0f
 	void SortGoalsAscendingPriority();
 
 protected:
+	// PCGMaze
 	void TickDoActionImplementation(TObjectPtr<UAction> Action);
 
 	void InitPCGMazeGoals();
@@ -154,10 +155,15 @@ private:
 	ANavigationNode* GetNearestNavigationNode();
 
 	const FString State_bHasWandered = "bHasWandered";
+	
 	const FString State_bHasReached_StartOfMaze = "bHasReachedStartOfMaze";
+	
 	const FString State_bHasReached_EndOfMaze = "bHasReachedEndOfMaze";
-	const FString State_bHasMovedVertically = "bHasMovedVertically";
-	const FString State_bHasMovedLaterally = "bHasMovedLaterally";
+	
+	// const FString State_bHasMovedVertically = "bHasMovedVertically";
+	// const FString State_bHasMovedLaterally = "bHasMovedLaterally";
+	const FString State_bHasMoved = "bHasMoved";
+
 	const FString State_bHasPathNorth = "bHasPathNorth";
 	const FString State_bHasPathSouth = "bHasPathSouth";
 	const FString State_bHasPathEast = "bHasPathEast";
