@@ -36,20 +36,12 @@ public:
 	TArray<ANavigationNode*> GetConnectedNodes();
 	void AddConnectedNode(ANavigationNode* Node);
 
-
 	UFUNCTION(BlueprintPure, Category = "A4 Navigation")
 	bool IsBlocked() const { return bIsBlocked; }
 
 protected:
 	UPROPERTY(EditAnywhere)
 	TArray<ANavigationNode*> ConnectedNodes;
-
-	// UPROPERTY(VisibleAnywhere)
-	// USceneComponent* LocationComponent;
-
-	// UPROPERTY(VisibleAnywhere)
-	// UAIPerceptionStimuliSourceComponent* PerceptionSource;
-
 
 public:
 	// Testing with subsystem building all nodes pathways like AGP labs
@@ -69,6 +61,10 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "A4 Navigation")
 	bool bIsDistraction = false;
 
+	// Counter to track how many times an NPC visited
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Analytics")
+	int32 NPCVisitedCounter;
+	
 	UFUNCTION(BlueprintPure, Category = "A4 Navigation")
 	FVector GetLocationComponentTransform();
 	
@@ -76,14 +72,17 @@ public:
 	USceneComponent* LocationComponent;
 	// Seems to allow GetActorLocation() too
 	
-	
+	// UPROPERTY(VisibleAnywhere)
+	// USceneComponent* LocationComponent;
+
+	// UPROPERTY(VisibleAnywhere)
+	// UAIPerceptionStimuliSourceComponent* PerceptionSource;
+	// 
 	// // The trigger zone (1 meter = 100 Unreal Units radius)
 	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	// USphereComponent* TriggerSphere;
 	//
-	// Counter to track how many times an NPC visited
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Analytics")
-	int32 NPCVisitedCounter;
+
 	//
 	// // Function that triggers when something overlaps the sphere
 	// UFUNCTION()

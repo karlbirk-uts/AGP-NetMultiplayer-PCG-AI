@@ -538,7 +538,7 @@ void UPathfindingSubsystem::MazePCGPlaceProceduralNodes(
 }
 
 
-// Reducing desire to revisit same navigation nodes
+// Reducing desire to revisit same navigation nodes.
 TArray<FVector> UPathfindingSubsystem::MazeGetPath(ANavigationNode* StartNode, ANavigationNode* EndNode) {
     if (!StartNode || !EndNode) {
         return TArray<FVector>();
