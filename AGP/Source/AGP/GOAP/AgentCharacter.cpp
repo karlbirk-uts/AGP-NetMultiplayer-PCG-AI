@@ -780,31 +780,7 @@ void AAgentCharacter::InitPCGMazeGoals()
 	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasPathWest, true);
 	AgentActions.Add(ActionMoveTowardsWest);
 
-
-	// TObjectPtr<UGoal> GoalHasMovedVertically = NewObject<UGoal>(this);
-	// GoalHasMovedVertically->GoalWorldState.StatesMap.Add(State_bHasMovedVertically, true);
-	// GoalHasMovedVertically->GoalPriority = 3.0f;
-	// AgentGoals.Add(GoalHasMovedVertically);
-	//
-	// TObjectPtr<UGoal> GoalHasMovedLaterally = NewObject<UGoal>(this);
-	// GoalHasMovedLaterally->GoalWorldState.StatesMap.Add(State_bHasMovedLaterally, true);
-	// GoalHasMovedLaterally->GoalPriority = 3.0f;
-	// AgentGoals.Add(GoalHasMovedLaterally);
-
-	// ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasMovedLaterally, false);
-	// ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, false);
-	// ActionMoveTowardsWest->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, true);
-	// ActionMoveTowardsEast->ActionPrereqs.StatesMap.Add(State_bHasMovedLaterally, false);
-	// ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, false);
-	// ActionMoveTowardsEast->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, true);
-
-	// ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, true);
-	// ActionMoveTowardsNorth->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, false);
-	// ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(State_bHasMovedVertically, true);
-	// ActionMoveTowardsSouth->ActionOutcomes.StatesMap.Add(State_bHasMovedLaterally, false);
-	// AgentWorldState.StatesMap.Add(State_bHasMovedVertically, false);
-	// AgentWorldState.StatesMap.Add(State_bHasMovedLaterally, false);
-	// AgentWorldState.StatesMap.Add(TEXT("bHasRepeatedZone"), false);
+	
 }
 
 
