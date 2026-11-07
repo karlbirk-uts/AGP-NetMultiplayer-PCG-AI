@@ -1,5 +1,22 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+/**
+ * AAgentCharacter.h
+ * 
+ * GOAP Agent (NPC)
+ * Hosts GOAP AgentWorldState, AgentActions, AgentGoals
+ * and a customised Planner methods for PCGMaze
+ * 
+ * To solve PCGMaze, there are broad goals, with AgentAction 
+ * heuristics variables weighing up deltas of distance to maze end, 
+ * and each cardinal movement option considers how frequently NPC
+ * has visited a path (cell / customised ANavigationNode).
+ * 
+ * This has considerable PCGMaze-specific edits compared to A3 version.
+ * 
+ * Author: Karl Birk
+ * UTS AGP 2026 Group 10
+ */
 
+// ReSharper disable CppUE4CodingStandardNamingViolationWarning
 #pragma once
 
 #include "CoreMinimal.h"
@@ -59,10 +76,10 @@ private:
 	TObjectPtr<UAction> CurrentQueuedAction = nullptr;
 
 	
-	// GOAP PLANNER (A4 edit, inhouse, somewhat bespoke for PCGMaze)
-	UPROPERTY()
-	int32 CurrentPlanIndex = 0;
+	// UPROPERTY()
+	// int32 CurrentPlanIndex = 0;
 	
+	// GOAP PLANNER (A4 edit, in house, somewhat bespoke for PCGMaze)
 	UFUNCTION()
 	void TickDoCurrentPlan5();
 
@@ -72,9 +89,9 @@ private:
 	// FTimerHandle VariableTimerHandle;
 
 
-	// Helper implementation.
-	// Working MoveTowards minigoal method, with bool triggered
-	// once arrived. Unused by A4 finished build.
+	// Unused in final A4 build. 
+	// Convenient TickMovement with destination-reached boolean
+	// especially if UPathfindingSubsystem isn't a thing.
 	bool MoveTowards(const FVector& Location);
 
 	// Goals priority 1.0f is higher than 10.0f
@@ -123,7 +140,7 @@ private:
 	TArray<int32> OpenSetIndex;
 	TArray<int32> ClosedSetIndex;
 
-	// NON-POINTER version of graph building because GC 
+	// NON-POINTER version of graph building because UE GC
 	// seems to be hungry.
 	int32 AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode);
 	float GetDirectionalMoveCost(const ANavigationNode* TargetNode, float FlatModifier, const FVector& GoalLocation,
@@ -154,6 +171,10 @@ private:
 	void CheckReachedEndOfMaze();
 	ANavigationNode* GetNearestNavigationNode();
 
+	
+	
+	// Quotation mark text comparison errors made me want enum 
+	// or const FStrings.
 	const FString State_bHasWandered = "bHasWandered";
 	
 	const FString State_bHasReached_StartOfMaze = "bHasReachedStartOfMaze";
@@ -180,6 +201,8 @@ private:
 	
 };
 
+// Copy of A3 Planner.h's FPlannerNode. 
+// It didn't end up being customised by A4.
 struct FAgentPlannerNode
 {
 	// Tree info 

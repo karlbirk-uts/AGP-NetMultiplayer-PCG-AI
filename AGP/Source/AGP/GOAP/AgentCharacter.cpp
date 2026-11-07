@@ -114,7 +114,9 @@ void AAgentCharacter::TickDoActionImplementation(TObjectPtr<UAction> Action)
 	}
 	else if (Action->UniqueName == Action_MoveTowards_StartOfMaze)
 	{
-		AgentTickMoveToMazeStart(Action);
+		Action->bIsCompleted = MoveTowards(StartOfMaze);
+		
+		// AgentTickMoveToMazeStart(Action);
 	}
 	else if (Action->UniqueName == Action_MoveTowards_North)
 	{
@@ -804,7 +806,9 @@ void AAgentCharacter::InitPCGMazeGoals()
 
 
 // MOVEMENT comes through this method.
-// Same as AGP MoveAlongPath with UAction* bIsCompleted flagged true.
+// Same as AGP MoveAlongPath with UAction* bIsCompleted flagged true
+// and some minor PCGMaze manoeuvrability tricks (tight corners).
+// Also increments a nearby ANavigationNode->NPCVisitedCounter++
 void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 {
 	if (CurrentNodesPath.IsEmpty())
@@ -819,7 +823,8 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 
 	// PCGMaze unstuck code - NPC was cutting corners and getting stuck
 	// and PCGMaze helper class was spawning Obstacles blueprints that 
-	// had colliders. 50.0f here means NPC hasn't moved more than 5cm per tick.
+	// had full mesh colliders.
+	// 50.0f here means NPC hasn't moved more than 50cm per tick.
 	if (FVector::DistSquared(GetActorLocation(), LastCheckedLocation) < 50.0f)
 	{
 		StuckTimer += GetWorld()->GetDeltaSeconds();
@@ -1369,6 +1374,10 @@ void AAgentCharacter::RefreshCardinalPathWorldStates()
 			}
 			else
 			{
+				// Excessive logging, maybe. It helped to learn that I 
+				// needed to call this method more often whilst navigating
+				// and again before GetPlan().
+
 				// NearestNode->GetConnectedNodes().Num() > 0
 				UE_LOG(LogTemp, Warning,
 				       TEXT("NPC RefreshCardinalPathWorldStates NearestNode->GetConnectedNodes().Num() <= 0"));
@@ -1401,7 +1410,7 @@ void AAgentCharacter::CheckReachedEndOfMaze()
 	}
 }
 
-
+// Helper method that allows for shorter lines code
 ANavigationNode* AAgentCharacter::GetNearestNavigationNode()
 {
 	ANavigationNode* NearestNavigationNode = nullptr;
@@ -1417,6 +1426,10 @@ ANavigationNode* AAgentCharacter::GetNearestNavigationNode()
 	return NearestNavigationNode;
 }
 
+
+// Update nearest ANavigationNode's bIsMud bool
+// ANavigationNode's memory is accessible by all NPCs
+// so seems to work best if NPCs vs PCs multiplayer
 void AAgentCharacter::SetNearestNavNodeIsMud(bool bIsMud)
 {
 	if (PathfindingSubsystem)
@@ -1430,6 +1443,8 @@ void AAgentCharacter::SetNearestNavNodeIsMud(bool bIsMud)
 	}
 }
 
+
+// Update TQueue of Action pointers. Queue has Pop abilities
 void AAgentCharacter::BuildQueueFromPlan()
 {
 	CurrentPlanQueue.Empty();
@@ -1443,6 +1458,9 @@ void AAgentCharacter::BuildQueueFromPlan()
 	}
 }
 
+// Unused in final A4 build. 
+// Convenient TickMovement with destination-reached boolean
+// especially if UPathfindingSubsystem isn't a thing.
 bool AAgentCharacter::MoveTowards(const FVector& DesiredLocation)
 {
 	FVector NPCLocation = GetActorLocation();
@@ -1452,6 +1470,7 @@ bool AAgentCharacter::MoveTowards(const FVector& DesiredLocation)
 	AddMovementInput(Direction, 1.0f);
 
 	// Walking through PCGMaze likes some tighter waypoints adherence
+	// if (FVector::DistSquared(DesiredLocation, NPCLocation) <= 62'500.0f) // 2.5m
 	if (FVector::DistSquared(DesiredLocation, NPCLocation) <= 22'500.0f) // 1.5m
 	{
 		return true;
@@ -1463,6 +1482,9 @@ bool AAgentCharacter::MoveTowards(const FVector& DesiredLocation)
 }
 
 
+// Goal priority as 1.0f higher than 10.0f. Can be called within
+// Planning methods if variable goals priorities, but current
+// GOAP implementation has constant goal priorities.
 void AAgentCharacter::SortGoalsAscendingPriority()
 {
 	// Sort the Goals for quick queue parsing later (Selection Sort)
@@ -1495,6 +1517,7 @@ void AAgentCharacter::SortGoalsAscendingPriority()
 	}
 }
 
+// Cardinal direction node getter
 ANavigationNode* AAgentCharacter::GetNorthCellNavigationNode()
 {
 	ANavigationNode* NorthernMostNeighbourNode = nullptr;
@@ -1544,6 +1567,8 @@ ANavigationNode* AAgentCharacter::GetNorthCellNavigationNode()
 	return NorthernMostNeighbourNode;
 }
 
+
+// Cardinal direction node getter
 ANavigationNode* AAgentCharacter::GetSouthCellNavigationNode()
 {
 	ANavigationNode* SouthernMostNeighbourNode = nullptr;
@@ -1587,6 +1612,8 @@ ANavigationNode* AAgentCharacter::GetSouthCellNavigationNode()
 	return SouthernMostNeighbourNode;
 }
 
+
+// Cardinal direction node getter
 ANavigationNode* AAgentCharacter::GetEastCellNavigationNode()
 {
 	ANavigationNode* EasternMostNeighbourNode = nullptr;
@@ -1630,6 +1657,8 @@ ANavigationNode* AAgentCharacter::GetEastCellNavigationNode()
 	return EasternMostNeighbourNode;
 }
 
+
+// Cardinal direction node getter
 ANavigationNode* AAgentCharacter::GetWestCellNavigationNode()
 {
 	ANavigationNode* WesternMostNeighbourNode = nullptr;
@@ -1674,6 +1703,7 @@ ANavigationNode* AAgentCharacter::GetWestCellNavigationNode()
 }
 
 
+// Copy of A3 Planner::AddToPlannerNodes
 int32 AAgentCharacter::AgentAddToPlannerNodes(const FAgentPlannerNode& NextNode)
 {
 	// Research suggests using Emplace on TArray shouldn't break index tracking

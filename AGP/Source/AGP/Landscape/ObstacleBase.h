@@ -15,7 +15,7 @@ enum class EObstacleType : uint8
 	Spill       UMETA(DisplayName = "Spill")
 };
 
-UCLASS(PrioritizeCategories="Transform Obstacle")
+UCLASS(PrioritizeCategories="Obstacle Spill")
 class AGP_API AObstacleBase : public AActor
 {
 	GENERATED_BODY()

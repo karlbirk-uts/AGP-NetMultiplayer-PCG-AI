@@ -1,4 +1,12 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+/**
+* AGP class subsystem example originally.
+ * Now with PCGMaze edits to customise NavigationNode connectedness
+ * in cardinal directions.
+ * This connectedness is used by NPC to sense the PCGMaze, cell by cell
+ * 
+ * Author: Karl Birk
+ * UTS AGP 2026 Group 10
+ */
 
 // ReSharper disable CppUE4CodingStandardNamingViolationWarning
 #pragma once

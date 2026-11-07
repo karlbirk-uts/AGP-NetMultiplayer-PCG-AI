@@ -50,6 +50,7 @@ void AProceduralLandscape::Tick(float DeltaTime)
 	}
 }
 
+
 void AProceduralLandscape::GenerateLandscape()
 {
 	PerlinOffset = FMath::FRandRange(-1'000'000.0f, 1'000'000.0f);

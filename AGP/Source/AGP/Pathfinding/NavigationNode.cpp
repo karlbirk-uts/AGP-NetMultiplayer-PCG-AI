@@ -1,3 +1,14 @@
+/**
+ * ANavigationNode for AGP class subsystem example originally.
+ * Now with PCGMaze edits to customise NavigationNode connectedness
+ * in cardinal directions.
+ * This connectedness is used by NPC to sense the PCGMaze, cell by cell
+ * 
+ * Author: Karl Birk
+ * UTS AGP 2026 Group 10
+ */
+
+
 // ReSharper disable CppTooWideScope
 #include "NavigationNode.h"
 
