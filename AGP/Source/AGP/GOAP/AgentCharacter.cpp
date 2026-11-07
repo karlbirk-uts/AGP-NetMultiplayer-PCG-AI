@@ -1266,10 +1266,10 @@ void AAgentCharacter::AgentTickMoveWest(UAction* CurrentAgentAction)
 void AAgentCharacter::RefreshCardinalPathWorldStates()
 {
 	// Defaults first
-	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathNorth"), false);
-	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathSouth"), false);
-	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathEast"), false);
-	AgentWorldState.StatesMap.Emplace(TEXT("bHasPathWest"), false);
+	AgentWorldState.StatesMap.Emplace(State_bHasPathNorth, false);
+	AgentWorldState.StatesMap.Emplace(State_bHasPathSouth, false);
+	AgentWorldState.StatesMap.Emplace(State_bHasPathEast, false);
+	AgentWorldState.StatesMap.Emplace(State_bHasPathWest, false);
 
 
 	if (PathfindingSubsystem)
@@ -1281,6 +1281,7 @@ void AAgentCharacter::RefreshCardinalPathWorldStates()
 
 			if (NearestNode->GetConnectedNodes().Num() > 0)
 			{
+				// ReSharper disable once CommentTypo
 				// Iterate through neighbournodes
 				for (int32 i = 0; i < NearestNode->GetConnectedNodes().Num(); ++i)
 				{
