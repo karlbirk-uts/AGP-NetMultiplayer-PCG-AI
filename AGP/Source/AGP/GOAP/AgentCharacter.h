@@ -140,6 +140,16 @@ protected:
 	void AgentTickPatrol(UAction* CurrentAgentAction);
 	void AgentMoveAlongPath(UAction* CurrentAgentAction);
 
+	
+	UFUNCTION()
+	void OnNPCOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, 
+						   UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
+						   bool bFromSweep, const FHitResult& SweepResult);
+
+	// A helper method inside the NPC to process the obstacle logic
+	void HandleObstacleCollision(class AObstacleBase* Obstacle);
+
+	
 public:
 	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GOAP NPC")
 	// TObjectPtr<UWidgetComponent> GoalWidgetComponent;
@@ -150,6 +160,10 @@ public:
 
 
 	void SetNearestNavNodeIsMud(bool bIsMud);
+	void SetNearestNavNodeIsBlocked(bool bIsMud);
+	void SetNearestNavNodeIsJunction(bool IsJunction);
+	void SetNearestNavNodeIsDeadend(bool bIsDeadend);
+	void SetNearestNavNodeIsDistraction(bool bIsDistraction);
 
 
 	// TESTING ALT PLANNER

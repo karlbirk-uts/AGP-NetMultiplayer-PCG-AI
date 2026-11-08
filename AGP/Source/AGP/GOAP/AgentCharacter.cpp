@@ -24,6 +24,9 @@
 #include "GameFramework/Actor.h"
 #include "Kismet/GameplayStatics.h"
 #include "../Pathfinding/NavigationNode.h"
+#include "Components/CapsuleComponent.h"
+#include "../Landscape/ObstacleBase.h"
+
 // #include "Components/WidgetComponent.h"
 
 // struct FAgentPlannerNode;
@@ -38,6 +41,13 @@ AAgentCharacter::AAgentCharacter()
 void AAgentCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+
+	if (GetCapsuleComponent())
+	{
+		GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &AAgentCharacter::OnNPCOverlapBegin);
+	}
+
 
 	// Empty planning collections
 	AgentCurrentPlan.Empty();
@@ -779,8 +789,6 @@ void AAgentCharacter::InitPCGMazeGoals()
 	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasReached_StartOfMaze, true);
 	ActionMoveTowardsWest->ActionPrereqs.StatesMap.Add(State_bHasPathWest, true);
 	AgentActions.Add(ActionMoveTowardsWest);
-
-	
 }
 
 
@@ -865,6 +873,42 @@ void AAgentCharacter::AgentMoveAlongPath(UAction* CurrentAgentAction)
 			UE_LOG(LogTemp, Warning, TEXT("AgentMoveAlongPath() CurrentAgentAction->bIsCompleted: %s"),
 			       *CurrentAgentAction->UniqueName);
 		}
+	}
+}
+
+
+// Listening for collider overlaps for AObstacleBase
+void AAgentCharacter::OnNPCOverlapBegin(
+	UPrimitiveComponent* OverlappedComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
+{
+	if (OtherActor && OtherActor != this)
+	{
+		AObstacleBase* OverlappedObstacle = Cast<AObstacleBase>(OtherActor);
+
+		if (OverlappedObstacle)
+		{
+			HandleObstacleCollision(OverlappedObstacle);
+		}
+	}
+}
+
+void AAgentCharacter::HandleObstacleCollision( AObstacleBase* Obstacle)
+{
+	if (Obstacle)
+	{
+		bool bNPCKnowsItIsMud = Obstacle->IsMud();
+		bool bNPCKnowsItIsSlime = Obstacle->IsSlime();
+
+		if (bNPCKnowsItIsMud || bNPCKnowsItIsSlime)
+		{
+			SetNearestNavNodeIsMud(true);
+		}
+
 	}
 }
 
@@ -1347,6 +1391,57 @@ void AAgentCharacter::SetNearestNavNodeIsMud(bool bIsMud)
 		{
 			NavigationNode->bIsMud = bIsMud;
 		}
+	}
+}
+
+
+// Update nearest ANavigationNode's bIsBlocked bool
+// ANavigationNode's memory is accessible by all NPCs
+// so seems to work best if NPCs vs PCs multiplayer
+void AAgentCharacter::SetNearestNavNodeIsBlocked(bool bIsBlocked)
+{
+	ANavigationNode* NearestNavNode = GetNearestNavigationNode();
+	if (NearestNavNode)
+	{
+		NearestNavNode->bIsBlocked = bIsBlocked;
+	}
+}
+
+
+// Update nearest ANavigationNode's bIsJunction bool
+// ANavigationNode's memory is accessible by all NPCs
+// so seems to work best if NPCs vs PCs multiplayer
+void AAgentCharacter::SetNearestNavNodeIsJunction(bool bIsJunction)
+{
+	ANavigationNode* NearestNavNode = GetNearestNavigationNode();
+	if (NearestNavNode)
+	{
+		NearestNavNode->bIsJunction = bIsJunction;
+	}
+}
+
+// Update nearest ANavigationNode's bIsDeadend bool
+// ANavigationNode's memory is accessible by all NPCs
+// so seems to work best if NPCs vs PCs multiplayer
+void AAgentCharacter::SetNearestNavNodeIsDeadend(bool bIsDeadend)
+{
+	ANavigationNode* NearestNavNode = GetNearestNavigationNode();
+	if (NearestNavNode)
+	{
+		NearestNavNode->bIsDeadend = bIsDeadend;
+	}
+}
+
+
+// Update nearest ANavigationNode's bIsDistraction bool
+// ANavigationNode's memory is accessible by all NPCs
+// so seems to work best if NPCs vs PCs multiplayer
+void AAgentCharacter::SetNearestNavNodeIsDistraction(bool bIsDistraction)
+{
+	ANavigationNode* NearestNavNode = GetNearestNavigationNode();
+	if (NearestNavNode)
+	{
+		NearestNavNode->bIsDistraction = bIsDistraction;
 	}
 }
 
