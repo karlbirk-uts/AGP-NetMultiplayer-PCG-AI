@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "BaseCharacter.h"
+#include "Blueprint/UserWidget.h"
 #include "PlayerCharacter.generated.h"
 
 class UPlayerCharacterHUD;
@@ -45,9 +46,25 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly)
 	UInputAction* ReloadAction;
+	
+	// for player-to-player comms------------------------------
+	UPROPERTY(EditDefaultsOnly)
+	UInputAction* CommsWheelAction;
+	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UUserWidget> CommsWheelClass;
 
+	UPROPERTY()
+	UUserWidget* CommsWheelWidget;
+
+	UPROPERTY()
+	bool bWheelOpen = false;
+	//-------------------------------------------
+	
 	UPROPERTY(EditDefaultsOnly)
 	UInputMappingContext* InputMappingContext;
+	
+	
 
 	UPROPERTY(EditDefaultsOnly, meta = (UIMin = "0.0", UIMax = "1.0"))
 	float LookSensitivity;
@@ -83,4 +100,11 @@ private:
 	void Look(const FInputActionValue& Value);
 	void FireWeapon(const FInputActionValue& Value);
 	void ReloadWeapon(const FInputActionValue& Value);
+	
+	//for player-to-player comms-------------
+	void ToggleCommsWheel(const FInputActionValue& Value);
+
+	void ShowCommsWheel(const FInputActionValue& Value);
+	void HideCommsWheel(const FInputActionValue& Value);
+	//-----------------------------------------
 };

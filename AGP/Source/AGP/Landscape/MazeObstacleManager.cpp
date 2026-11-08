@@ -86,6 +86,7 @@ int32 AMazeObstacleManager::GetNearestSpillDistance(
     return BestDistance;
 }
 
+// finds the spillcell that is the furthest away from the previous spillcell
 FIntPoint AMazeObstacleManager::GetBestSpillCell() const
 {
     if (!MazeReference)
@@ -387,6 +388,7 @@ void AMazeObstacleManager::SpawnObstacles(int32 Seed)
     SpawnSpills();
 }
 
+//make sure that no impassable obstacles are in the way of the maze path
 bool AMazeObstacleManager::IsMazeStillReachable() const
 {
 	if (!MazeReference)

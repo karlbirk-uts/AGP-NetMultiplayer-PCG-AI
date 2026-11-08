@@ -139,24 +139,15 @@ public: // for obstacles!
 	UPROPERTY(EditAnywhere, Category = "Maze")
 	AMazeObstacleManager *ObstacleManager;
 
-	// multicast to all machines
+	// ---------------multicast to all machines------------
+	// having the spills be sent from the mazegenerator makes the most sense logically as spills
+	// cannot be called independently of maze generation
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastRegenerateMaze(
 		int32 Seed,
 		int32 InSpills,
 		int32 InDistractions);
-
-	// float GetCellSize() const
-	// {
-	// 	return CellSize;
-	// }
-
-	// cell-to-world helper
-	// UFUNCTION(BlueprintCallable)
-	// FVector GetCellWorldPosition(int32 CellX, int32 CellY) const;
-
-	// UPROPERTY(EditAnywhere, Category = "Maze")
-	// AMazeObstacleManager *ObstacleManager;
+	
 
 	virtual bool ShouldTickIfViewportsOnly() const override;
 
